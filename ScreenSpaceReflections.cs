@@ -249,7 +249,6 @@ namespace VolumetricShading
             shader.UniformMatrix("modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
             shader.Uniform("dropletIntensity", _chunkRenderer.GetField<float>("curRainFall"));
 
-
             var textureIds = _chunkRenderer.GetField<int[]>("textureIds");
 
             for (int i = 0; i < textureIds.Length; i++)

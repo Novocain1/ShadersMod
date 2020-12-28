@@ -1,0 +1,14 @@
+[
+    {
+        "file": "game:blocktypes/liquid/glacierice.json",
+        "op": "add",
+        "path": "vertexFlags/reflective",
+        "value": true
+    },
+    {
+        "file": "game:blocktypes/liquid/lakeice.json",
+        "op": "add",
+        "path": "vertexFlags/reflective",
+        "value": true
+    }
+]

@@ -104,7 +104,7 @@ void main()
     // Droplet noise
     float f = 0;
     if (skyExposed > 0) {
-        vec2 coord = 12.0 * fragPosition.xz / (2.0 + noise/3000.0);
+        vec2 coord = 12.0 * (worldPos.xz + playerpos.xz) / (2.0 + noise/3000.0);
         f = dropletnoise(coord);
     }
     
@@ -114,8 +114,10 @@ void main()
 
     mul = water1 || isShiny ? 0.0 : 1.0;
 
-    mul = color.a < 0.01 ? 1.0 : mul;
+    mul = color.a < 0.01 ? max(f, 0.999999) : mul;
+    vec3 worldPos = fragPosition.xyz;
+    if (f > 0) noise += f;
 
-	outGPosition = vec4(fragPosition.xyz, mul); // waterFlags disables lava :)
+	outGPosition = vec4(worldPos, mul); // waterFlags disables lava :)
 	outGNormal = gnormal + vec4(noise, 0f, noise, mul);
 }

@@ -198,7 +198,7 @@ void main()
 				f = dropletnoise(uv);
 			}
 			
-			texColor.rgb *= 1 + f;
+			texColor.rgb;// *= 1 + f;
 
 			/*
 			// Specular reflection
