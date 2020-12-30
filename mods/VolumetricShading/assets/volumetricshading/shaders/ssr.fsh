@@ -12,9 +12,10 @@ in vec2 uv;
 in vec4 worldPos;
 in vec4 fragPosition;
 in vec4 gnormal;
+flat in int applyPuddles;
 flat in int flags;
 flat in int waterFlags;
-flat in int skyExposed;
+flat in int shinyOrSkyExposed;
 
 layout(location = 0) out vec4 outGPosition;
 layout(location = 1) out vec4 outGNormal;
@@ -96,28 +97,37 @@ void main()
     vec3 noisepos = vec3((worldPos.x + playerpos.x) - windWaveCounter / 6, (worldPos.z + playerpos.z), waterWaveCounter / 12 + wind * windWaveCounter / 6);
 	
     bool isNotWater = (waterFlags & (1<<25)) > 0;
-    bool isShiny = ((flags >> 5) & 1) > 0;
+    
+    bool skyExposed = shinyOrSkyExposed > 0 && isLiquidPass;
+    bool shiny = shinyOrSkyExposed > 0 && !isLiquidPass;
+    bool applypuddles = applyPuddles > 0;
 
     float noise = !isLiquidPass || isNotWater ? 0 : (gnoise(noisepos) / div);
     float mul = 0;
 
     // Droplet noise
     float f = 0;
-    if (skyExposed > 0) {
+    float puddles = 1.0;
+    bool water1 = isLiquidPass && !isNotWater;
+    
+    if (skyExposed || applypuddles){
         vec2 coord = 12.0 * (worldPos.xz + playerpos.xz) / (2.0 + noise/3000.0);
         f = dropletnoise(coord);
+    }
+
+    if(dropletIntensity > 0.0 && !water1 && applypuddles) {
+        puddles = gnoise(vec3((worldPos.xyz + playerpos.xyz) + sin(waterWaveCounter * 0.01) * 2.0));
+        puddles += gnoise(vec3((worldPos.xyz + playerpos.xyz + sin(windWaveCounter * 0.01)) * 32.0));
     }
     
     vec4 color = texture(terrainTex, uv);
 
-    bool water1 = isLiquidPass && !isNotWater;
-
-    mul = water1 || isShiny ? 0.0 : 1.0;
+    mul = water1 || shiny ? 0.0 : puddles;
 
     mul = color.a < 0.01 ? max(f, 0.999999) : mul;
     vec3 worldPos = fragPosition.xyz;
-    if (f > 0) noise += f;
 
-	outGPosition = vec4(worldPos, mul); // waterFlags disables lava :)
-	outGNormal = gnormal + vec4(noise, 0f, noise, mul);
+	outGPosition = vec4(worldPos, mul);
+
+	outGNormal = gnormal + vec4(noise - dFdx(f), 0.0, noise - dFdy(f), mul);
 }

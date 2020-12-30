@@ -39,9 +39,11 @@ out vec2 uv;
 out vec4 worldPos;
 out vec4 fragPosition;
 out vec4 gnormal;
+
+flat out int applyPuddles;
 flat out int flags;
 flat out int waterFlags;
-flat out int skyExposed;
+flat out int shinyOrSkyExposed;
 
 #include vertexwarp.vsh
 #include fogandlight.vsh
@@ -59,7 +61,7 @@ void main(void)
 	uv = uvIn;
 	flags = renderFlags >> 8;
 	worldPos = vec4(vertexPositionIn + origin, 1.0);
-	skyExposed = (flags >> 13) & 1;
+	shinyOrSkyExposed = (renderFlags >> 13) & 1;
 
 	bool weakWave = ((waterFlagsIn & (1<<27)) > 0);
 
@@ -82,7 +84,16 @@ void main(void)
 	gnormal = modelViewMatrix * vec4(fragNormal.xyz, 0);
     waterFlags = waterFlagsIn;
 
-	// We pretend the decal is closer to the camera to enforce it always being drawn on top
-	// Required e.g. when water is besides stairs or slabs
-	gl_Position.w += 0.0008 / max(0.1, gl_Position.z);
+	// Now the lowest 3 bits are used as an unsigned number 
+	// to fix Z-Fighting on blocks over certain other blocks. 
+	if (renderFlags > 0 && gl_Position.z > 0) {
+		gl_Position.w += (renderFlags & 7) * 0.00025 / max(0.1, gl_Position.z);
+	}
+
+    gl_Position.z -= 0.01;
+	bool wave = (renderFlags & 0x800) > 0;
+	bool up = dot(fragNormal, vec3(0,1,0)) == 1;
+	bool leaves = ((renderFlags & 0x8000000) > 0);
+
+	applyPuddles = up && !wave && !leaves && isTopSoilPass ? 1 : 0;
 }
