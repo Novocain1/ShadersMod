@@ -17,117 +17,115 @@ flat in int flags;
 flat in int waterFlags;
 flat in int shinyOrSkyExposed;
 
+bool shiny = renderPass != 4 && shinyOrSkyExposed > 0;
+
 layout(location = 0) out vec4 outGPosition;
 layout(location = 1) out vec4 outGNormal;
 
-bool isOpaquePass = renderPass == 0;
-bool isOpaqueNoCullPass = renderPass == 1;
-bool isBlendNoCullPass = renderPass == 2;
-bool isTransparentPass = renderPass == 3;
-bool isLiquidPass = renderPass == 4;
-bool isTopSoilPass = renderPass == 5;
-bool isMetaPass = renderPass == 6;
+#include commonnoise.fsh
 
-vec2 droplethash3( vec2 p )
+void CommonPrePass(inout float mul)
 {
-    vec2 q = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
-	return fract(sin(q)*43758.5453);
+    mul = shiny ? 0.0 : mul;
 }
 
-float dropletnoise(in vec2 x)
+void GenSplashAt(vec2 coord, inout vec3 normalMap)
 {
-	if (dropletIntensity < 0.001) return 0.;
-	
-    x *= dropletIntensity;
-    
-    vec2 p = floor(x);
-    vec2 f = fract(x);
-    
-		
-	float va = 0.0;
-    for( int j=-1; j<=1; j++ )
-    for( int i=-1; i<=1; i++ )
-    {
-        vec2 g = vec2(float(i), float(j));
-		vec2 o = droplethash3(p + g);
-		vec2 r = ((g - f) + o.xy) / dropletIntensity;
-		float d = sqrt(dot(r,r));
-        
-        float a = max(cos(d - waterWaveCounter * 2.7 + (o.x + o.y) * 5.0), 0.);
-        a = smoothstep(0.99, 0.999, a);
-        
-	    float ripple = mix(a, 0., d);
-        va += max(ripple, 0.);
+    for (int i = 0; i < 2; i++){
+        float drop = dropletnoise(coord, dropletIntensity, waterWaveCounter - (0.1 * i));
+        normalMap.x -= dFdx(drop);
+        normalMap.z -= dFdy(drop);
     }
-	
-    return va;
 }
 
-vec3 ghash( vec3 p ) // replace this by something better
+void GenSplash(inout vec3 normalMap)
 {
-	p = vec3( dot(p,vec3(127.1,311.7, 74.7)),
-			  dot(p,vec3(269.5,183.3,246.1)),
-			  dot(p,vec3(113.5,271.9,124.6)));
-
-	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+    vec2 coord = 8.0 * (worldPos.xz + playerpos.xz) / (2.0 + normalMap.x/3000.0);
+    GenSplashAt(coord, normalMap);
 }
 
-float gnoise( in vec3 p )
+void LiquidPass(inout vec3 normalMap, inout float mul)
 {
-    vec3 i = floor( p );
-    vec3 f = fract( p );
-	
-	vec3 u = f*f*(3.0-2.0*f);
+    bool isLava = (waterFlags & (1<<25)) > 0;
+    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
+    float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
 
-    return 0.7 * mix( mix( mix( dot( ghash( i + vec3(0.0,0.0,0.0) ), f - vec3(0.0,0.0,0.0) ), 
-                          dot( ghash( i + vec3(1.0,0.0,0.0) ), f - vec3(1.0,0.0,0.0) ), u.x),
-                     mix( dot( ghash( i + vec3(0.0,1.0,0.0) ), f - vec3(0.0,1.0,0.0) ), 
-                          dot( ghash( i + vec3(1.0,1.0,0.0) ), f - vec3(1.0,1.0,0.0) ), u.x), u.y),
-                mix( mix( dot( ghash( i + vec3(0.0,0.0,1.0) ), f - vec3(0.0,0.0,1.0) ), 
-                          dot( ghash( i + vec3(1.0,0.0,1.0) ), f - vec3(1.0,0.0,1.0) ), u.x),
-                     mix( dot( ghash( i + vec3(0.0,1.0,1.0) ), f - vec3(0.0,1.0,1.0) ), 
-                          dot( ghash( i + vec3(1.0,1.0,1.0) ), f - vec3(1.0,1.0,1.0) ), u.x), u.y), u.z );
+    vec2 coord1 = vec2(worldPos.x + playerpos.x, worldPos.z + playerpos.z);
+    vec2 coord2 = coord1 * 4 + 16;
+
+    vec3 noisepos1 = vec3(coord1.x - windWaveCounter / 6, coord1.y, waterWaveCounter / 12 + wind * windWaveCounter / 6);
+    vec3 noisepos2 = vec3(coord2.x - windWaveCounter / 6, coord2.y, waterWaveCounter / 12 + wind * windWaveCounter / 6);
+
+    float noise1 = (gnoise(noisepos1) / div) + (gnoise(noisepos2) / div);
+
+    float noise = isLava ? 1.0 : noise1;
+
+    normalMap = vec3(-dFdx(noise), normalMap.y, -dFdy(noise));
+    mul = normalMap.x;
+
+    if (shinyOrSkyExposed > 0) GenSplash(normalMap);
+}
+
+void TopsoilPass(inout vec3 normalMap, inout float mul)
+{
+    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
+    float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
+
+    vec2 coord1 = vec2(worldPos.x + playerpos.x, worldPos.z + playerpos.z);
+    vec2 coord2 = coord1 * 4 + 16;
+
+    vec3 noisepos1 = vec3(coord1.x, coord1.y, sin(waterWaveCounter * 0.1));
+    vec3 noisepos2 = vec3(coord2.x, coord2.y, cos(waterWaveCounter * 0.1));
+
+    float noise1 = (gnoise(noisepos1) / div);
+    float noise2 = (gnoise(noisepos2) / div);
+
+    float noise = smoothstep(noise1, noise2, 1.0);
+
+    if (applyPuddles > 0 && dropletIntensity > 0.0)
+    {
+        mul = noise;
+        normalMap.x = dFdx(noise);
+        normalMap.z = dFdy(noise);
+        
+        GenSplash(normalMap);
+    }
+}
+
+void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap)
+{
+    vec4 color = texture(terrainTex, uv);
+    mul = color.a < 0.01 ? 1.0 : mul;
+
+	outGPosition = vec4(worldPos, mul);
+	outGNormal = gnormal + vec4(normalMap, mul);
 }
 
 void main() 
 {
-    // apply waves
-    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
-    float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
-    vec3 noisepos = vec3((worldPos.x + playerpos.x) - windWaveCounter / 6, (worldPos.z + playerpos.z), waterWaveCounter / 12 + wind * windWaveCounter / 6);
-	
-    bool isNotWater = (waterFlags & (1<<25)) > 0;
-    
-    bool skyExposed = shinyOrSkyExposed > 0 && isLiquidPass;
-    bool shiny = shinyOrSkyExposed > 0 && !isLiquidPass;
-    bool applypuddles = applyPuddles > 0;
+    vec3 normalMap = vec3(0.0);
+    float mul = 1.0;
 
-    float noise = !isLiquidPass || isNotWater ? 0 : (gnoise(noisepos) / div);
-    float mul = 0;
+    CommonPrePass(mul);
 
-    // Droplet noise
-    float f = 0;
-    float puddles = 1.0;
-    bool water1 = isLiquidPass && !isNotWater;
-    
-    if (skyExposed || applypuddles){
-        vec2 coord = 12.0 * (worldPos.xz + playerpos.xz) / (2.0 + noise/3000.0);
-        f = dropletnoise(coord);
-    }
-
-    if(dropletIntensity > 0.0 && !water1 && applypuddles) {
-        puddles = gnoise(vec3((worldPos.xyz + playerpos.xyz) + sin(waterWaveCounter * 0.01) * 2.0));
-        puddles += gnoise(vec3((worldPos.xyz + playerpos.xyz + sin(windWaveCounter * 0.01)) * 32.0));
+    switch (renderPass){
+        case 0:
+            break;
+        case 1:
+            break;
+        case 2:
+            break;
+        case 3:
+            break;
+        case 4:
+            LiquidPass(normalMap, mul);
+            break;
+        case 5:
+            TopsoilPass(normalMap, mul);
+            break;
+        case 6:
+            break;                       
     }
     
-    vec4 color = texture(terrainTex, uv);
-
-    mul = water1 || shiny ? 0.0 : puddles;
-
-    mul = color.a < 0.01 ? max(f, 0.999999) : mul;
-    vec3 worldPos = fragPosition.xyz;
-
-	outGPosition = vec4(worldPos, mul);
-
-	outGNormal = gnormal + vec4(noise - dFdx(f), 0.0, noise - dFdy(f), mul);
+    CommonPostPass(mul, fragPosition.xyz, normalMap);
 }
