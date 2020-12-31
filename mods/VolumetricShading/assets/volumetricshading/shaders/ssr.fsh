@@ -44,6 +44,30 @@ void GenSplash(inout vec3 normalMap)
     GenSplashAt(coord, normalMap);
 }
 
+void GenPuddles(inout vec3 normalMap, inout float mul)
+{
+    vec2 coord1 = vec2(worldPos.x + playerpos.x, worldPos.z + playerpos.z);
+    vec2 coord2 = coord1 * 4 + 16;
+
+    vec3 noisepos1 = vec3(coord1.x, coord1.y, sin(waterWaveCounter * 0.02));
+    vec3 noisepos2 = vec3(coord2.x, coord2.y, cos(waterWaveCounter * 0.01));
+
+    float noise1 = (gnoise(noisepos1));
+    float noise2 = (gnoise(noisepos2));
+
+    float noise = max((noise1 - noise2), 0);
+
+    if (applyPuddles > 0 && dropletIntensity > 0.0)
+    {
+        mul = noise > (0.5 * dropletIntensity) ? 1.0 : noise;
+        normalMap.x = dFdx(noise * 8.0);
+        normalMap.y = noise;
+        normalMap.z = dFdy(noise * 8.0);
+        
+        GenSplash(normalMap);
+    }
+}
+
 void LiquidPass(inout vec3 normalMap, inout float mul)
 {
     bool isLava = (waterFlags & (1<<25)) > 0;
@@ -68,28 +92,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
 
 void TopsoilPass(inout vec3 normalMap, inout float mul)
 {
-    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
-    float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
-
-    vec2 coord1 = vec2(worldPos.x + playerpos.x, worldPos.z + playerpos.z);
-    vec2 coord2 = coord1 * 4 + 16;
-
-    vec3 noisepos1 = vec3(coord1.x, coord1.y, sin(waterWaveCounter * 0.1));
-    vec3 noisepos2 = vec3(coord2.x, coord2.y, cos(waterWaveCounter * 0.1));
-
-    float noise1 = (gnoise(noisepos1) / div);
-    float noise2 = (gnoise(noisepos2) / div);
-
-    float noise = smoothstep(noise1, noise2, 1.0);
-
-    if (applyPuddles > 0 && dropletIntensity > 0.0)
-    {
-        mul = noise;
-        normalMap.x = dFdx(noise);
-        normalMap.z = dFdy(noise);
-        
-        GenSplash(normalMap);
-    }
+    GenPuddles(normalMap, mul);
 }
 
 void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap)
@@ -108,7 +111,8 @@ void main()
 
     CommonPrePass(mul);
 
-    switch (renderPass){
+    switch (renderPass)
+    {
         case 0:
             break;
         case 1:
