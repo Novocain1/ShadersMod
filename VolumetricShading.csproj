@@ -58,16 +58,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConfigGui.cs" />
-    <Compile Include="HackMan.cs" />
-    <Compile Include="HarmonyPatches.cs" />
-    <Compile Include="ModSettings.cs" />
-    <Compile Include="ReflectionHelper.cs" />
-    <Compile Include="ScreenSpaceReflections.cs" />
-    <Compile Include="ShaderInjector.cs" />
-    <Compile Include="VolumetricLighting.cs" />
-    <Compile Include="VolumetricLightingGui.cs" />
-    <Compile Include="VolumetricShadingMod.cs" />
+    <Compile Include="mysrc\ConfigGui.cs" />
+    <Compile Include="mysrc\HackMan.cs" />
+    <Compile Include="mysrc\HarmonyPatches.cs" />
+    <Compile Include="mysrc\ModSettings.cs" />
+    <Compile Include="mysrc\ReflectionHelper.cs" />
+    <Compile Include="mysrc\ScreenSpaceReflections.cs" />
+    <Compile Include="mysrc\ShaderInjector.cs" />
+    <Compile Include="mysrc\VolumetricLighting.cs" />
+    <Compile Include="mysrc\VolumetricLightingGui.cs" />
+    <Compile Include="mysrc\VolumetricShadingMod.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".vs\VolumetricShading\DesignTimeBuild\.dtbcache.v2" />
