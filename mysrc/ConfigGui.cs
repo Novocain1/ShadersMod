@@ -41,10 +41,7 @@ namespace VolumetricShading
                 .AddSwitch(ToggleScreenSpaceReflections, (switchBounds = switchBounds.BelowCopy(fixedDeltaY:switchPadding)), "toggleSSR", switchSize)
                 .AddStaticText("Screen Space Reflections", font, (textBounds = textBounds.BelowCopy(fixedDeltaY:switchPadding)))
                 .AddHoverText("Toggles reflections on water.", font, 250, textBounds.FlatCopy())
-                
-                .AddSwitch(ToggleFasterShadows, (switchBounds = switchBounds.BelowCopy(fixedDeltaY:switchPadding)), "toggleFasterShadows", switchSize)
-                .AddStaticText("Faster Shadows", font, (textBounds = textBounds.BelowCopy(fixedDeltaY:switchPadding)))
-                .AddHoverText("Enables the use of Poisson sampling, resulting in slightly faster shadow sampling.", font, 250, textBounds.FlatCopy())
+                .AddSmallButton("Advanced...", OnSSRAdvancedClicked, (advancedButtonBounds = advancedButtonBounds.BelowCopy(fixedDeltaY:switchPadding)))
                 
                 .AddSwitch(ToggleSSDO, (switchBounds = switchBounds.BelowCopy(fixedDeltaY:switchPadding)), "toggleSSDO", switchSize)
                 .AddStaticText("Improve SSAO", font, (textBounds = textBounds.BelowCopy(fixedDeltaY:switchPadding)))
@@ -71,7 +68,6 @@ namespace VolumetricShading
             
             SingleComposer.GetSwitch("toggleVolumetricLighting").On = ClientSettings.GodRayQuality > 0;
             SingleComposer.GetSwitch("toggleSSR").On = ModSettings.ScreenSpaceReflectionsEnabled;
-            SingleComposer.GetSwitch("toggleFasterShadows").On = ModSettings.FasterShadowsEnabled;
             SingleComposer.GetSwitch("toggleSSDO").On = ModSettings.SSDOEnabled;
         }
         
@@ -98,19 +94,6 @@ namespace VolumetricShading
             RefreshValues();
         }
 
-        private void ToggleFasterShadows(bool on)
-        {
-            if (on && ClientSettings.ShadowMapQuality == 0)
-            {
-                ClientSettings.ShadowMapQuality = 1;
-            }
-            
-            ModSettings.FasterShadowsEnabled = on;
-            capi.GetClientPlatformAbstract().RebuildFrameBuffers();
-            capi.Shader.ReloadShaders();
-            RefreshValues();
-        }
-
         private void ToggleSSDO(bool on)
         {
             if (on && ClientSettings.SSAOQuality == 0)
@@ -128,6 +111,14 @@ namespace VolumetricShading
         {
             TryClose();
             var advancedGui = new VolumetricLightingGui(capi);
+            advancedGui.TryOpen();
+            return true;
+        }
+
+        private bool OnSSRAdvancedClicked()
+        {
+            TryClose();
+            var advancedGui = new ScreenSpaceReflectionsGui(capi);
             advancedGui.TryOpen();
             return true;
         }

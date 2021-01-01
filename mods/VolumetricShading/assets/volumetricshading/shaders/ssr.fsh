@@ -22,7 +22,9 @@ vec2 coord1 = vec2(worldPos.x + playerpos.x, worldPos.z + playerpos.z);
 
 layout(location = 0) out vec4 outGPosition;
 layout(location = 1) out vec4 outGNormal;
+layout(location = 2) out vec4 outTint;
 
+#include colormap.fsh
 #include commonnoise.fsh
 
 void CommonPrePass(inout float mul)
@@ -123,6 +125,7 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap)
 
 	outGPosition = vec4(worldPos, mul);
 	outGNormal = gnormal + vec4(normalMap, mul);
+    outTint = vec4(getColorMapping(terrainTex).rgb, mul);
 }
 
 void main() 

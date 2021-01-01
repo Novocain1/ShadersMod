@@ -73,7 +73,38 @@ namespace VolumetricShading
 
             return success;
         }
-        
+
+        private void SetupVertexTexture(FrameBufferRef fbRef, int textureId)
+        {
+            GL.BindTexture(TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId]);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, _fbWidth, _fbHeight, 0,
+                PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor,
+                new[] { 1f, 1f, 1f, 1f });
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                (int)TextureWrapMode.ClampToBorder);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                (int)TextureWrapMode.ClampToBorder);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + textureId,
+                TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId], 0);
+        }
+
+        private void SetupColorTexture(FrameBufferRef fbRef, int textureId)
+        {
+            GL.BindTexture(TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId]);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, _fbWidth, _fbHeight, 0, PixelFormat.Rgba, PixelType.UnsignedShort, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Linear);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + textureId,
+                TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId], 0);
+        }
+
         public void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
         {
             _mod.Mod.Logger.Event("Recreating framebuffers");
@@ -99,30 +130,17 @@ namespace VolumetricShading
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _ssrFramebuffer.FboId);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D,
                 mainBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 0);
-            
+
             // create our normal and position textures
-            _ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(2, _ => GL.GenTexture());
-            
+            _ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(3, _ => GL.GenTexture());
+
             // bind and setup textures
-            for (var i = 0; i < _ssrFramebuffer.ColorTextureIds.Length; ++i)
+            for (var i = 0; i < 2; ++i)
             {
-                GL.BindTexture(TextureTarget.Texture2D, _ssrFramebuffer.ColorTextureIds[i]);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, _fbWidth, _fbHeight, 0,
-                    PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                    (int) TextureMinFilter.Linear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                    (int) TextureMagFilter.Linear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor,
-                    new[] {1f, 1f, 1f, 1f});
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
-                    (int) TextureWrapMode.ClampToBorder);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
-                    (int) TextureWrapMode.ClampToBorder);
-                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + i,
-                    TextureTarget.Texture2D, _ssrFramebuffer.ColorTextureIds[i], 0);
+                SetupVertexTexture(_ssrFramebuffer, i);
             }
-            
+            SetupColorTexture(_ssrFramebuffer, 2);
+
             GL.DrawBuffers(3, new []{DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1, DrawBuffersEnum.ColorAttachment2 });
 
             CheckFbStatus();
@@ -202,6 +220,7 @@ namespace VolumetricShading
             shader.BindTexture2D("gPosition", _ssrFramebuffer.ColorTextureIds[0], 1);
             shader.BindTexture2D("gNormal", _ssrFramebuffer.ColorTextureIds[1], 2);
             shader.BindTexture2D("gDepth", _platform.FrameBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 3);
+            shader.BindTexture2D("gTint", _ssrFramebuffer.ColorTextureIds[2], 4);
             shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
             shader.UniformMatrix("invProjectionMatrix", Mat4f.Invert(invProjMatrix, _mod.CApi.Render.CurrentProjectionMatrix));
             shader.UniformMatrix("invModelViewMatrix", Mat4f.Invert(invModelViewMatrix, _mod.CApi.Render.CameraMatrixOriginf));
@@ -232,6 +251,7 @@ namespace VolumetricShading
             _platform.LoadFrameBuffer(_ssrFramebuffer);
             GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 1, new []{0f, 0f, 0f, 1f});
+            GL.ClearBuffer(ClearBuffer.Color, 2, new[] { 0f, 0f, 0f, 1f });
 
             _platform.GlEnableCullFace();
             _platform.GlDepthMask(false);
@@ -239,6 +259,7 @@ namespace VolumetricShading
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(0, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
             GL.BlendFunc(1, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
+            GL.BlendFunc(2, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
 
             // render stuff
             _game.GlPushMatrix();

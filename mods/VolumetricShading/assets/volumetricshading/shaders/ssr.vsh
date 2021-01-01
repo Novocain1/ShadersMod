@@ -47,6 +47,7 @@ flat out int shinyOrSkyExposed;
 
 #include vertexwarp.vsh
 #include fogandlight.vsh
+#include colormap.vsh
 
 bool isOpaquePass = renderPass == 0;
 bool isOpaqueNoCullPass = renderPass == 1;
@@ -96,4 +97,6 @@ void main(void)
 	bool leaves = ((renderFlags & 0x8000000) > 0);
 
 	applyPuddles = up && !wave && !leaves && isTopSoilPass ? 1 : 0;
+	
+	calcColorMapUvs(colormapData, vec4(vertexPositionIn + origin, 1.0) + vec4(playerpos, 1), rgbaLightIn.a, false);
 }

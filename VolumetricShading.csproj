@@ -58,12 +58,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="mysrc\AdvancedOptionsDialog.cs" />
     <Compile Include="mysrc\ConfigGui.cs" />
     <Compile Include="mysrc\HackMan.cs" />
     <Compile Include="mysrc\HarmonyPatches.cs" />
     <Compile Include="mysrc\ModSettings.cs" />
     <Compile Include="mysrc\ReflectionHelper.cs" />
     <Compile Include="mysrc\ScreenSpaceReflections.cs" />
+    <Compile Include="mysrc\ScreenSpaceReflectionsGui.cs" />
     <Compile Include="mysrc\ShaderInjector.cs" />
     <Compile Include="mysrc\VolumetricLighting.cs" />
     <Compile Include="mysrc\VolumetricLightingGui.cs" />
