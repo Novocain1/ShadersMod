@@ -49,8 +49,8 @@ void GenPuddles(inout vec3 normalMap, inout float mul)
     vec2 coord1 = vec2(worldPos.x + playerpos.x, worldPos.z + playerpos.z);
     vec2 coord2 = coord1 * 4 + 16;
 
-    vec3 noisepos1 = vec3(coord1.x, coord1.y, sin(waterWaveCounter * 0.02));
-    vec3 noisepos2 = vec3(coord2.x, coord2.y, cos(waterWaveCounter * 0.01));
+    vec3 noisepos1 = vec3(coord1.x, coord1.y, waterWaveCounter * 0.7);
+    vec3 noisepos2 = vec3(coord2.x, coord2.y, waterWaveCounter * 0.6);
 
     float noise1 = (gnoise(noisepos1));
     float noise2 = (gnoise(noisepos2));
@@ -61,7 +61,6 @@ void GenPuddles(inout vec3 normalMap, inout float mul)
     {
         mul = noise > (0.5 * dropletIntensity) ? 1.0 : noise;
         normalMap.x = dFdx(noise * 8.0);
-        normalMap.y = noise;
         normalMap.z = dFdy(noise * 8.0);
         
         GenSplash(normalMap);
