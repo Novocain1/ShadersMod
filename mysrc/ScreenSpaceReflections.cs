@@ -251,7 +251,7 @@ namespace VolumetricShading
             _platform.LoadFrameBuffer(_ssrFramebuffer);
             GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 1, new []{0f, 0f, 0f, 1f});
-            GL.ClearBuffer(ClearBuffer.Color, 2, new[] { 0f, 0f, 0f, 1f });
+            GL.ClearBuffer(ClearBuffer.Color, 2, new []{ 0f, 0f, 0f, 1f });
 
             _platform.GlEnableCullFace();
             _platform.GlDepthMask(false);

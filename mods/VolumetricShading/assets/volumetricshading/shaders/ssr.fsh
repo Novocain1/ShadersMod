@@ -18,7 +18,7 @@ flat in int waterFlags;
 flat in int shinyOrSkyExposed;
 
 bool shiny = renderPass != 4 && shinyOrSkyExposed > 0;
-vec2 coord1 = vec2(worldPos.x + playerpos.x, worldPos.z + playerpos.z);
+vec3 coord1 = worldPos.xyz + playerpos;
 
 layout(location = 0) out vec4 outGPosition;
 layout(location = 1) out vec4 outGNormal;
@@ -32,10 +32,10 @@ void CommonPrePass(inout float mul)
     mul = shiny ? 0.0 : mul;
 }
 
-void GenSplashAt(vec2 coord, inout vec3 normalMap)
+void GenSplashAt(vec3 coord, inout vec3 normalMap)
 {
     for (int i = 0; i < 2; i++){
-        float drop = dropletnoise(coord, dropletIntensity, waterWaveCounter - (0.1 * i));
+        float drop = dropletnoise(coord.xz, dropletIntensity, waterWaveCounter - (0.1 * i));
         normalMap.x -= dFdx(drop);
         normalMap.z -= dFdy(drop);
     }
@@ -43,16 +43,16 @@ void GenSplashAt(vec2 coord, inout vec3 normalMap)
 
 void GenSplash(inout vec3 normalMap)
 {
-    vec2 coord = 8.0 * (worldPos.xz + playerpos.xz) / (2.0 + normalMap.x/3000.0);
+    vec3 coord = 8.0 * coord1 / (2.0 + normalMap.x/3000.0);
     GenSplashAt(coord, normalMap);
 }
 
 void GenDenseSurfacePuddles(inout vec3 normalMap, inout float mul)
 {
-    vec2 coord2 = coord1 * 4 + 16;
+    vec3 coord2 = coord1 * 4 + 16;
 
-    vec3 noisepos1 = vec3(coord1, waterWaveCounter * 0.7);
-    vec3 noisepos2 = vec3(coord2, waterWaveCounter * 0.6);
+    vec3 noisepos1 = vec3(coord1.xy, coord1.z + waterWaveCounter * 0.7);
+    vec3 noisepos2 = vec3(coord2.xy, coord2.z + waterWaveCounter * 0.6);
 
     float noise1 = gnoise(noisepos1);
     float noise2 = gnoise(noisepos2);
@@ -71,10 +71,10 @@ void GenDenseSurfacePuddles(inout vec3 normalMap, inout float mul)
 
 void GenSeepedPuddles(inout vec3 normalMap, inout float mul)
 {
-    vec2 coord2 = coord1 * 8 + 16;
+    vec3 coord2 = coord1 * 8 + 16;
 
-    vec3 noisepos1 = vec3(coord1, waterWaveCounter * 0.1);
-    vec3 noisepos2 = vec3(coord2, waterWaveCounter * 0.02);
+    vec3 noisepos1 = vec3(coord1.xy, coord1.z + waterWaveCounter * 0.1);
+    vec3 noisepos2 = vec3(coord2.xy, coord2.z + waterWaveCounter * 0.02);
 
     float noise1 = gnoise(noisepos1);
     float noise2 = gnoise(noisepos2);
@@ -98,10 +98,10 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
     
-    vec2 coord2 = coord1 * 4 + 16;
+    vec3 coord2 = coord1 * 4 + 16;
 
-    vec3 noisepos1 = vec3(coord1.x - windWaveCounter / 6, coord1.y, waterWaveCounter / 12 + wind * windWaveCounter / 6);
-    vec3 noisepos2 = vec3(coord2.x - windWaveCounter / 6, coord2.y, waterWaveCounter / 12 + wind * windWaveCounter / 6);
+    vec3 noisepos1 = vec3(coord1.x - windWaveCounter / 6, coord1.y, coord1.z + waterWaveCounter / 12 + wind * windWaveCounter / 6);
+    vec3 noisepos2 = vec3(coord2.x - windWaveCounter / 6, coord2.y, coord2.z + waterWaveCounter / 12 + wind * windWaveCounter / 6);
 
     float noise1 = (gnoise(noisepos1) / div) + (gnoise(noisepos2) / div);
 
@@ -118,20 +118,21 @@ void TopsoilPass(inout vec3 normalMap, inout float mul)
     GenSeepedPuddles(normalMap, mul);
 }
 
-void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap)
+void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
 {
     vec4 color = texture(terrainTex, uv);
     mul = color.a < 0.01 ? 1.0 : mul;
 
 	outGPosition = vec4(worldPos, mul);
 	outGNormal = gnormal + vec4(normalMap, mul);
-    outTint = vec4(getColorMapping(terrainTex).rgb, mul);
+    if (!skipTint) outTint = vec4(getColorMapping(terrainTex).rgb, mul);
 }
 
 void main() 
 {
     vec3 normalMap = vec3(0.0);
     float mul = 1.0;
+    bool skipTint = false;
 
     CommonPrePass(mul);
 
@@ -155,5 +156,5 @@ void main()
             break;                       
     }
     
-    CommonPostPass(mul, fragPosition.xyz, normalMap);
+    CommonPostPass(mul, fragPosition.xyz, normalMap, skipTint);
 }
