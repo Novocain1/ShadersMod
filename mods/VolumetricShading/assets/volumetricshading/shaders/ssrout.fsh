@@ -139,7 +139,7 @@ void main(void) {
 
         outColor = reflection;
         outColor.rgb *= pow(texture(gTint, texcoord).rgb, vec3(VSMOD_SSR_TINT_INFLUENCE));
-        outColor.a *= (1.0f - positionFrom.w) * fresnel;
+        outColor.a *= (1.0 - positionFrom.w) * fresnel;
     }
 
     float findBright = min(max(outColor.r, max(outColor.g, outColor.b)), 0.25) - fogDensityIn;
