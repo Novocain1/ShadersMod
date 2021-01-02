@@ -4,10 +4,55 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using Vintagestory.API.Client;
+using Vintagestory.API.Client.Tesselation;
+using Vintagestory.API.Common;
+using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
 
 namespace VolumetricShading
 {
+    [HarmonyPatch]
+    internal class SkyVisibility
+    {
+        const int chunksize = 32;
+
+        [HarmonyPatch(typeof(CubeTesselator), "Tesselate")][HarmonyPrefix]
+        public static void CubeTesselator(ref TCTCache vars) => Tesselate(ref vars);
+
+        [HarmonyPatch(typeof(LiquidTesselator), "Tesselate")]
+        [HarmonyPrefix]
+        public static void LiquidTesselator(ref TCTCache vars) => Tesselate(ref vars);
+
+        [HarmonyPatch(typeof(TopsoilTesselator), "Tesselate")]
+        [HarmonyPrefix]
+        public static void TopsoilTesselator(ref TCTCache vars) => Tesselate(ref vars);
+
+        [HarmonyPatch(typeof(JsonTesselator), "Tesselate")]
+        [HarmonyPrefix]
+        public static void JsonTesselator(ref TCTCache vars) => Tesselate(ref vars);
+
+        [HarmonyPatch(typeof(JsonAndSnowLayerTesselator), "Tesselate")]
+        [HarmonyPrefix]
+        public static void JsonAndSnowLayerTesselator(ref TCTCache vars) => Tesselate(ref vars);
+
+        [HarmonyPatch(typeof(JsonAndLiquidTesselator), "Tesselate")]
+        [HarmonyPrefix]
+        public static void JsonAndLiquidTesselator(ref TCTCache vars) => Tesselate(ref vars);
+
+        public static void Tesselate(ref TCTCache vars)
+        {
+            int flags = vars.drawFaceFlags;
+
+            if ((TileSideFlagsEnum.Up & flags) != 0)
+            {
+                if (vars.mapchunk.RainHeightMap[(vars.posZ % chunksize) * chunksize + (vars.posX % chunksize)] <= vars.posY)
+                {
+                    vars.ColorMapData.Value |= 1 << 13;
+                }
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(ClientPlatformWindows))]
     internal class PlatformPatches
     {

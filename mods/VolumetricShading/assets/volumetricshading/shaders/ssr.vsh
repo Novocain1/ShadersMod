@@ -25,7 +25,8 @@ layout(location = 5) in int waterFlagsIn;
 // Bits 0..7 = season map index
 // Bits 8..11 = climate map index
 // Bits 12 = Frostable bit
-// Bits 13, 14, 15 = free \o/
+// Bits 13 = Sky visibility bit
+// Bits 14, 15 = free \o/
 // Bits 16-23 = temperature
 // Bits 24-31 = rainfall
 layout(location = 6) in int colormapData;
@@ -36,6 +37,8 @@ uniform mat4 modelViewMatrix;
 uniform int renderPass;
 
 out vec2 uv;
+out vec3 worldNormal;
+out vec3 fragWorldPos;
 out vec4 worldPos;
 out vec4 fragPosition;
 out vec4 gnormal;
@@ -70,6 +73,7 @@ void main(void)
 	float yBefore = worldPos.y;
 	
 	vec3 fragNormal = unpackNormal(renderFlags >> 15);
+	worldNormal = fragNormal;
 
 	if (isLiquidPass) worldPos = applyLiquidWarping((waterFlagsIn & 0x2000000) == 0, worldPos, div);
 	else worldPos = applyVertexWarping(renderFlags, worldPos);
@@ -95,8 +99,10 @@ void main(void)
 	bool wave = (renderFlags & 0x800) > 0;
 	bool up = dot(fragNormal, vec3(0,1,0)) == 1;
 	bool leaves = ((renderFlags & 0x8000000) > 0);
-
-	applyPuddles = up && !wave && !leaves && isTopSoilPass ? 1 : 0;
+	
+	fragWorldPos = worldPos.xyz + playerpos;
+	
+	applyPuddles = (colormapData >> 13) & 1;
 	
 	calcColorMapUvs(colormapData, vec4(vertexPositionIn + origin, 1.0) + vec4(playerpos, 1), rgbaLightIn.a, false);
 }

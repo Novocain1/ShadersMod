@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
@@ -27,6 +28,9 @@ namespace VolumetricShading
 
         private int _fbWidth;
         private int _fbHeight;
+
+        private float targetWindSpeed;
+        private float curWindSpeed;
         
         public ScreenSpaceReflections(VolumetricShadingMod mod)
         {
@@ -182,6 +186,10 @@ namespace VolumetricShading
         public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
         {
             if (!_enabled) return;
+            
+            targetWindSpeed = (float)_mod.CApi.World.BlockAccessor.GetWindSpeedAt(_game.EntityPlayer.Pos.XYZ).X;
+            curWindSpeed += (targetWindSpeed - curWindSpeed) * 0.01f;
+
             if (_chunkRenderer == null)
             {
                 _chunkRenderer = _game.GetChunkRenderer();
@@ -269,6 +277,7 @@ namespace VolumetricShading
             shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
             shader.UniformMatrix("modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
             shader.Uniform("dropletIntensity", _chunkRenderer.GetField<float>("curRainFall"));
+            shader.Uniform("windIntensity", curWindSpeed);
 
             var textureIds = _chunkRenderer.GetField<int[]>("textureIds");
 

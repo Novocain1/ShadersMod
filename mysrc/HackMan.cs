@@ -9,6 +9,7 @@ namespace VolumetricShading
     public static class HackMan
     {
         public static T GetField<T>(this object instance, string fieldname) => (T)AccessTools.Field(instance.GetType(), fieldname).GetValue(instance);
+        public static FieldInfo GetFieldInfo(this object instance, string fieldname) => AccessTools.Field(instance.GetType(), fieldname);
         public static T GetProperty<T>(this object instance, string fieldname) => (T)AccessTools.Property(instance.GetType(), fieldname).GetValue(instance);
         public static object CreateInstance(this Type type) => AccessTools.CreateInstance(type);
         public static T[] GetFields<T>(this object instance)

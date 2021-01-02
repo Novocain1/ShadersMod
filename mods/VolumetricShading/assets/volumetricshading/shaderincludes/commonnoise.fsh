@@ -4,6 +4,35 @@ vec2 droplethash3(vec2 p)
 	return fract(sin(q)*43758.5453);
 }
 
+float dropletnoise(in vec2 x, in float waveCounter)
+{
+	if (dropletIntensity < 0.001) return 0.;
+	
+    x *= dropletIntensity;
+    
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+    
+		
+	float va = 0.0;
+    for( int j=-1; j<=1; j++ )
+    for( int i=-1; i<=1; i++ )
+    {
+        vec2 g = vec2(float(i), float(j));
+		vec2 o = droplethash3(p + g);
+		vec2 r = ((g - f) + o.xy) / dropletIntensity;
+		float d = sqrt(dot(r,r));
+        
+        float a = max(cos(d - waveCounter * 2.7 + (o.x + o.y) * 5.0), 0.);
+        a = smoothstep(0.99, 0.999, a);
+        
+	    float ripple = mix(a, 0., d);
+        va += max(ripple, 0.);
+    }
+	
+    return va;
+}
+
 float dropletnoise(in vec2 x, float dropletIntensity, float waterWaveCounter)
 {
 	if (dropletIntensity < 0.001) return 0.;
