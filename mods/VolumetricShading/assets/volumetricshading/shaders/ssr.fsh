@@ -93,45 +93,22 @@ void GenSplash(inout vec3 normalMap)
     normalMap += vec3(xDelta * 0.5, zDelta * 0.5, 0);
 }
 
-void GenDenseSurfacePuddles(inout vec3 normalMap, inout float mul)
-{
-    vec3 coord2 = coord1 * 4 + 16;
-
-    vec3 noisepos1 = vec3(coord1.xy, coord1.z + waterWaveCounter * 0.7);
-    vec3 noisepos2 = vec3(coord2.xy, coord2.z + waterWaveCounter * 0.7);
-
-    float noise1 = gnoise(noisepos1);
-    float noise2 = gnoise(noisepos2);
-
-    float noise = max((noise1 - noise2), 0);
-
-    if (applyPuddles > 0 && dropletIntensity > 0.0)
-    {
-        mul = noise > (0.5 * dropletIntensity) ? 1.0 : noise;
-        normalMap.x = dFdx(noise * 8.0);
-        normalMap.z = dFdy(noise * 8.0);
-        
-        GenSplash(normalMap);
-    }
-}
-
 void GenSeepedPuddles(inout vec3 normalMap, inout float mul)
 {
-    vec3 coord2 = coord1 * 8 + 16;
-
-    vec3 noisepos1 = vec3(coord1.xy, coord1.z + waterWaveCounter * 0.1);
-    vec3 noisepos2 = vec3(coord2.xy, coord2.z + waterWaveCounter * 0.02);
-
-    float noise1 = gnoise(noisepos1);
-    float noise2 = gnoise(noisepos2);
-
-    float noise = max((noise1 - noise2), 0);
-
     if (applyPuddles > 0 && dropletIntensity > 0.0)
     {
-        mul = noise > 0.1 * dropletIntensity ? 0.0 : 1.0;
+        vec3 coord2 = coord1 * 8 + 16;
 
-        normalMap = NormalFromNoise(noisepos1);
+        vec3 noisepos1 = vec3(coord1.xy, coord1.z + waterWaveCounter * 0.1);
+        vec3 noisepos2 = vec3(coord2.xy, coord2.z + waterWaveCounter * 0.02);
+
+        vec3 noise1 = NormalFromNoise(noisepos1);
+        vec3 noise2 = NormalFromNoise(noisepos2);
+
+        vec3 noise = max((noise1), 0);
+
+        normalMap = (noise1) / 4.0;
+        mul = 0.0;
         
         GenSplash(normalMap);
     }
@@ -139,7 +116,7 @@ void GenSeepedPuddles(inout vec3 normalMap, inout float mul)
 
 void OpaquePass(inout vec3 normalMap, inout float mul)
 {
-    GenDenseSurfacePuddles(normalMap, mul);
+    GenSeepedPuddles(normalMap, mul);
 }
 
 void LiquidPass(inout vec3 normalMap, inout float mul)

@@ -15,29 +15,26 @@ namespace VolumetricShading
     internal class SkyVisibility
     {
         const int chunksize = 32;
-
+       
+        #region patch redirectors
         [HarmonyPatch(typeof(CubeTesselator), "Tesselate")][HarmonyPrefix]
         public static void CubeTesselator(ref TCTCache vars) => Tesselate(ref vars);
 
-        [HarmonyPatch(typeof(LiquidTesselator), "Tesselate")]
-        [HarmonyPrefix]
+        [HarmonyPatch(typeof(LiquidTesselator), "Tesselate")][HarmonyPrefix]
         public static void LiquidTesselator(ref TCTCache vars) => Tesselate(ref vars);
 
-        [HarmonyPatch(typeof(TopsoilTesselator), "Tesselate")]
-        [HarmonyPrefix]
+        [HarmonyPatch(typeof(TopsoilTesselator), "Tesselate")][HarmonyPrefix]
         public static void TopsoilTesselator(ref TCTCache vars) => Tesselate(ref vars);
 
-        [HarmonyPatch(typeof(JsonTesselator), "Tesselate")]
-        [HarmonyPrefix]
+        [HarmonyPatch(typeof(JsonTesselator), "Tesselate")][HarmonyPrefix]
         public static void JsonTesselator(ref TCTCache vars) => Tesselate(ref vars);
 
-        [HarmonyPatch(typeof(JsonAndSnowLayerTesselator), "Tesselate")]
-        [HarmonyPrefix]
+        [HarmonyPatch(typeof(JsonAndSnowLayerTesselator), "Tesselate")][HarmonyPrefix]
         public static void JsonAndSnowLayerTesselator(ref TCTCache vars) => Tesselate(ref vars);
 
-        [HarmonyPatch(typeof(JsonAndLiquidTesselator), "Tesselate")]
-        [HarmonyPrefix]
+        [HarmonyPatch(typeof(JsonAndLiquidTesselator), "Tesselate")][HarmonyPrefix]
         public static void JsonAndLiquidTesselator(ref TCTCache vars) => Tesselate(ref vars);
+        #endregion
 
         public static void Tesselate(ref TCTCache vars)
         {
