@@ -2,6 +2,9 @@
 
 
 uniform sampler2D terrainTex;
+uniform sampler2D water1;
+uniform sampler2D water2;
+uniform sampler2D water3;
 uniform vec3 playerpos;
 uniform float windWaveCounter;
 uniform float waterWaveCounter;
@@ -36,6 +39,10 @@ void CommonPrePass(inout float mul)
     mul = shiny ? 0.0 : mul;
 }
 
+vec4 mix3(vec4 v1, vec4 v2, vec4 v3, float w1, float w2, float w3){
+    return v1 * w1 + v2 * w2 + v3 * w3;
+}
+
 vec3 NormalFromNoise(vec3 pos)
 {
     vec3 offset = vec3(1.0 / textureSize(terrainTex, 0).x, 1.0 / textureSize(terrainTex, 0).y, 0.1);
@@ -47,7 +54,26 @@ vec3 NormalFromNoise(vec3 pos)
     vec3 vertNorth = vec3(posNorth - 0.5) * gnoise(posNorth);
     vec3 vertEast = vec3(posEast - 0.5) * gnoise(posEast);
 
-    return normalize(cross(vertCenter - vertNorth, vertCenter - vertEast)) * 0.5 + 0.5;
+    return (normalize(cross(vertCenter - vertNorth, vertCenter - vertEast)) * 0.5 + 0.5) * 0.1;
+}
+
+vec4 WaterNormal(vec2 vec)
+{
+    vec.x -= windWaveCounter / 16.0;
+
+    vec4 sample1 = texture(water1, vec);
+    vec4 sample2 = texture(water2, vec);
+    vec4 sample3 = texture(water3, vec);
+
+    float cnt = waterWaveCounter * 4;
+
+    float cnt0 = sin(cnt + 0) * 0.5 + 0.5;
+    float cnt1 = sin(cnt + 2) * 0.5 + 0.5;
+    float cnt2 = sin(cnt + 4) * 0.5 + 0.5;
+    
+    vec4 intp = mix3(sample1, sample2, sample3, cnt0, cnt1, cnt2);
+
+    return intp;
 }
 
 // https://gamedev.stackexchange.com/questions/86530/is-it-possible-to-calculate-the-tbn-matrix-in-the-fragment-shader
@@ -122,29 +148,21 @@ void OpaquePass(inout vec3 normalMap, inout float mul)
 void LiquidPass(inout vec3 normalMap, inout float mul)
 {
     bool isLava = (waterFlags & (1<<25)) > 0;
-    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
+    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 20;
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
-    vec3 coord2 = coord1 * 4 + 16;
-    vec3 coord3 = coord1 * 2 + 32;
 
     div /= clamp(windIntensity, 0.05, 0.9);
 
-    vec3 noisepos1 = vec3(coord2.x + windWaveCounter / 6, coord2.y, coord2.z + waterWaveCounter / 12 + wind * windWaveCounter / 6);
-    vec3 noisepos2 = vec3(coord2.x - windWaveCounter / 6, coord2.y, coord2.z - waterWaveCounter / 12 - wind * windWaveCounter / 6);
-    vec3 noisepos3 = vec3(coord3.x - windWaveCounter / 6, coord3.y, coord3.z - waterWaveCounter / 12 - wind * windWaveCounter / 6);
+    vec4 water = WaterNormal(coord1.xz / 2);
+    float foam = water.a;
 
-    vec3 noise1 = NormalFromNoise(noisepos1) / div;
-    vec3 noise2 = NormalFromNoise(noisepos2) / div;
-    vec3 noise3 = NormalFromNoise(noisepos3) / div;
-
-    vec3 nmNoise = noise1 + noise2 + noise3;
-    
+    vec3 nmNoise = water.rgb / div; //noise1 + noise2 + noise3;
+    mul = foam;
     
     normalMap = isLava ? vec3(1) : nmNoise;
-    mul = 0.0;
     
     outTint = vec4(getColorMapping(terrainTex).rgb, mul);
-    outTint.rgb += nmNoise.y * div;
+    outTint.rgb += nmNoise.y * div + foam * div;
 
     if (shinyOrSkyExposed > 0 && dropletIntensity > 0.0) GenSplash(normalMap);
 }

@@ -31,6 +31,8 @@ namespace VolumetricShading
 
         private float targetWindSpeed;
         private float curWindSpeed;
+
+        int[] waterTextures = new int[3];
         
         public ScreenSpaceReflections(VolumetricShadingMod mod)
         {
@@ -49,6 +51,10 @@ namespace VolumetricShading
             mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.AfterPostProcessing, "ssrOut");
             
             SetupFramebuffers(_platform.FrameBuffers);
+
+            waterTextures[0] = mod.CApi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/1.png"));
+            waterTextures[1] = mod.CApi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/2.png"));
+            waterTextures[2] = mod.CApi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/3.png"));
         }
 
         private void OnEnabledChanged(bool enabled)
@@ -259,7 +265,7 @@ namespace VolumetricShading
             _platform.LoadFrameBuffer(_ssrFramebuffer);
             GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 1, new []{0f, 0f, 0f, 1f});
-            GL.ClearBuffer(ClearBuffer.Color, 2, new []{ 0f, 0f, 0f, 1f });
+            GL.ClearBuffer(ClearBuffer.Color, 2, new []{0f, 0f, 0f, 1f });
 
             _platform.GlEnableCullFace();
             _platform.GlDepthMask(false);
@@ -280,6 +286,10 @@ namespace VolumetricShading
             shader.Uniform("windIntensity", curWindSpeed);
 
             var textureIds = _chunkRenderer.GetField<int[]>("textureIds");
+            
+            shader.BindTexture2D("water1", waterTextures[0], 1);
+            shader.BindTexture2D("water2", waterTextures[1], 2);
+            shader.BindTexture2D("water3", waterTextures[2], 3);
 
             for (int i = 0; i < textureIds.Length; i++)
             {
