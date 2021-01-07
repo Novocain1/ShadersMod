@@ -8,7 +8,7 @@ namespace VolumetricShading
     {
         public static VolumetricShadingMod Instance;
 
-        public ICoreClientAPI CApi;
+        public ICoreClientAPI capi;
 
         public ShaderInjector ShaderInjector;
         public ScreenSpaceReflections ScreenSpaceReflections;
@@ -26,7 +26,7 @@ namespace VolumetricShading
         public override void StartClientSide(ICoreClientAPI api)
         {
             Instance = this;
-            CApi = api;
+            capi = api;
             
             ShaderInjector = new ShaderInjector();
             VolumetricLighting = new VolumetricLighting(this);
@@ -39,9 +39,9 @@ namespace VolumetricShading
 
         private void RegisterHotkeys()
         {
-            CApi.Input.RegisterHotKey("volumetriclightingconfigure", "Volumetric Lighting Configuration", GlKeys.C,
+            capi.Input.RegisterHotKey("volumetriclightingconfigure", "Volumetric Lighting Configuration", GlKeys.C,
                 HotkeyType.GUIOrOtherControls, ctrlPressed: true);
-            CApi.Input.SetHotKeyHandler("volumetriclightingconfigure", OnConfigurePressed);
+            capi.Input.SetHotKeyHandler("volumetriclightingconfigure", OnConfigurePressed);
         }
 
         private void PatchGame()
@@ -94,7 +94,7 @@ namespace VolumetricShading
         {
             if (ConfigGui == null)
             {
-                ConfigGui = new ConfigGui(CApi);
+                ConfigGui = new ConfigGui(capi);
             }
 
             if (CurrentDialog != null && CurrentDialog.IsOpened())
@@ -109,7 +109,7 @@ namespace VolumetricShading
 
         public override void Dispose()
         {
-            if (CApi == null) return;
+            if (capi == null) return;
             
             _harmony?.UnpatchAll();
 

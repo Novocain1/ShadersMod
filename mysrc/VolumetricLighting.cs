@@ -11,8 +11,8 @@ namespace VolumetricShading
         {
             _mod = mod;
             
-            _mod.CApi.Settings.AddWatcher<int>("shadowMapQuality", OnShadowMapChanged);
-            _mod.CApi.Settings.AddWatcher<int>("godRays", OnGodRaysChanged);
+            _mod.capi.Settings.AddWatcher<int>("shadowMapQuality", OnShadowMapChanged);
+            _mod.capi.Settings.AddWatcher<int>("godRays", OnGodRaysChanged);
         }
 
         private static void OnShadowMapChanged(int quality)
@@ -30,16 +30,16 @@ namespace VolumetricShading
             
             // turn on shadow mapping
             ClientSettings.ShadowMapQuality = 1;
-            _mod.CApi.GetClientPlatformAbstract().RebuildFrameBuffers();
+            _mod.capi.GetClientPlatformAbstract().RebuildFrameBuffers();
         }
         
         public void OnSetGodrayUniforms(ShaderProgramGodrays rays)
         {
             // custom uniform calls
-            var calendar = _mod.CApi.World.Calendar;
+            var calendar = _mod.capi.World.Calendar;
             var dropShadowIntensityObj = typeof(AmbientManager)
                 .GetField("DropShadowIntensity", BindingFlags.NonPublic | BindingFlags.Instance)?
-                .GetValue(_mod.CApi.Ambient);
+                .GetValue(_mod.capi.Ambient);
 
             if (dropShadowIntensityObj == null)
             {

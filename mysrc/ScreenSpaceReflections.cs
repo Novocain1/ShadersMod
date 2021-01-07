@@ -12,22 +12,22 @@ namespace VolumetricShading
 {
     public class ScreenSpaceReflections : IRenderer
     {
-        private readonly VolumetricShadingMod _mod;
+        private readonly VolumetricShadingMod mod;
         
-        private bool _enabled;
+        private bool Enabled { get => ModSettings.ScreenSpaceReflectionsEnabled; set => ModSettings.ScreenSpaceReflectionsEnabled = value; }
         
-        private FrameBufferRef _ssrFramebuffer;
-        private FrameBufferRef _ssrOutFramebuffer;
-        private IShaderProgram _ssrShader;
-        private IShaderProgram _ssrOutShader;
+        private FrameBufferRef ssrFramebuffer;
+        private FrameBufferRef ssrOutFramebuffer;
+        private IShaderProgram ssrShader;
+        private IShaderProgram ssrOutShader;
         
-        private readonly ClientMain _game;
-        private readonly ClientPlatformWindows _platform;
-        private ChunkRenderer _chunkRenderer;
-        private MeshRef _screenQuad;
+        private readonly ClientMain game;
+        private readonly ClientPlatformWindows platform;
+        private ChunkRenderer chunkRenderer;
+        private MeshRef screenQuad;
 
-        private int _fbWidth;
-        private int _fbHeight;
+        private int fbWidth;
+        private int fbHeight;
 
         private float targetWindSpeed;
         private float curWindSpeed;
@@ -36,50 +36,49 @@ namespace VolumetricShading
         
         public ScreenSpaceReflections(VolumetricShadingMod mod)
         {
-            _mod = mod;
+            this.mod = mod;
 
-            _game = mod.CApi.GetClient();
-            _platform = _game.GetClientPlatformWindows();
+            game = mod.capi.GetClient();
+            platform = game.GetClientPlatformWindows();
             
-            mod.CApi.Event.ReloadShader += ReloadShaders;
+            mod.capi.Event.ReloadShader += ReloadShaders;
             ReloadShaders();
 
-            _enabled = ModSettings.ScreenSpaceReflectionsEnabled;
-            mod.CApi.Settings.AddWatcher<bool>("volumetricshading_screenSpaceReflections", OnEnabledChanged);
+            mod.capi.Settings.AddWatcher<bool>("volumetricshading_screenSpaceReflections", OnEnabledChanged);
 
-            mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssr");
-            mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.AfterPostProcessing, "ssrOut");
+            mod.capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssr");
+            mod.capi.Event.RegisterRenderer(this, EnumRenderStage.AfterPostProcessing, "ssrOut");
             
-            SetupFramebuffers(_platform.FrameBuffers);
+            SetupFramebuffers(platform.FrameBuffers);
 
-            waterTextures[0] = mod.CApi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/1.png"));
-            waterTextures[1] = mod.CApi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/2.png"));
-            waterTextures[2] = mod.CApi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/3.png"));
+            waterTextures[0] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/1.png"));
+            waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/2.png"));
+            waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/3.png"));
         }
 
         private void OnEnabledChanged(bool enabled)
         {
-            _enabled = enabled;
+            this.Enabled = enabled;
         }
 
         private bool ReloadShaders()
         {
             var success = true;
             
-            _ssrShader?.Dispose();
-            _ssrOutShader?.Dispose();
+            ssrShader?.Dispose();
+            ssrOutShader?.Dispose();
 
-            var shader = (ShaderProgram) _mod.CApi.Shader.NewShaderProgram();
-            shader.AssetDomain = _mod.Mod.Info.ModID;
-            _mod.CApi.Shader.RegisterFileShaderProgram("ssr", shader);
+            var shader = (ShaderProgram) mod.capi.Shader.NewShaderProgram();
+            shader.AssetDomain = mod.Mod.Info.ModID;
+            mod.capi.Shader.RegisterFileShaderProgram("ssr", shader);
             if (!shader.Compile()) success = false;
-            _ssrShader = shader;
+            ssrShader = shader;
 
-            shader = (ShaderProgram) _mod.CApi.Shader.NewShaderProgram();
-            shader.AssetDomain = _mod.Mod.Info.ModID;
-            _mod.CApi.Shader.RegisterFileShaderProgram("ssrout", shader);
+            shader = (ShaderProgram) mod.capi.Shader.NewShaderProgram();
+            shader.AssetDomain = mod.Mod.Info.ModID;
+            mod.capi.Shader.RegisterFileShaderProgram("ssrout", shader);
             if (!shader.Compile()) success = false;
-            _ssrOutShader = shader;
+            ssrOutShader = shader;
 
             return success;
         }
@@ -87,7 +86,7 @@ namespace VolumetricShading
         private void SetupVertexTexture(FrameBufferRef fbRef, int textureId)
         {
             GL.BindTexture(TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId]);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, _fbWidth, _fbHeight, 0,
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, fbWidth, fbHeight, 0,
                 PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                 (int)TextureMinFilter.Linear);
@@ -106,7 +105,7 @@ namespace VolumetricShading
         private void SetupColorTexture(FrameBufferRef fbRef, int textureId)
         {
             GL.BindTexture(TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId]);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, _fbWidth, _fbHeight, 0, PixelFormat.Rgba, PixelType.UnsignedShort, IntPtr.Zero);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, fbWidth, fbHeight, 0, PixelFormat.Rgba, PixelType.UnsignedShort, IntPtr.Zero);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                 (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
@@ -117,67 +116,67 @@ namespace VolumetricShading
 
         public void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
         {
-            _mod.Mod.Logger.Event("Recreating framebuffers");
+            mod.Mod.Logger.Event("Recreating framebuffers");
 
-            if (_ssrFramebuffer != null)
+            if (ssrFramebuffer != null)
             {
                 // dispose the old framebuffer
-                _platform.DisposeFrameBuffer(_ssrFramebuffer);
+                platform.DisposeFrameBuffer(ssrFramebuffer);
             }
 
-            if (_ssrOutFramebuffer != null)
+            if (ssrOutFramebuffer != null)
             {
-                _platform.DisposeFrameBuffer(_ssrOutFramebuffer);
+                platform.DisposeFrameBuffer(ssrOutFramebuffer);
             }
 
             // create new framebuffer
-            _fbWidth = (int) (_platform.window.Width * ClientSettings.SSAA);
-            _fbHeight = (int) (_platform.window.Height * ClientSettings.SSAA);
-            _ssrFramebuffer = new FrameBufferRef
+            fbWidth = (int) (platform.window.Width * ClientSettings.SSAA);
+            fbHeight = (int) (platform.window.Height * ClientSettings.SSAA);
+            ssrFramebuffer = new FrameBufferRef
             {
-                FboId = GL.GenFramebuffer(), Width = _fbWidth, Height = _fbHeight
+                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight
             };
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _ssrFramebuffer.FboId);
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssrFramebuffer.FboId);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D,
                 mainBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 0);
 
             // create our normal and position textures
-            _ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(3, _ => GL.GenTexture());
+            ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(3, _ => GL.GenTexture());
 
             // bind and setup textures
             for (var i = 0; i < 2; ++i)
             {
-                SetupVertexTexture(_ssrFramebuffer, i);
+                SetupVertexTexture(ssrFramebuffer, i);
             }
-            SetupColorTexture(_ssrFramebuffer, 2);
+            SetupColorTexture(ssrFramebuffer, 2);
 
             GL.DrawBuffers(3, new []{DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1, DrawBuffersEnum.ColorAttachment2 });
 
             CheckFbStatus();
 
             // setup output framebuffer
-            _ssrOutFramebuffer = new FrameBufferRef
+            ssrOutFramebuffer = new FrameBufferRef
             {
-                FboId = GL.GenFramebuffer(), Width = _fbWidth, Height = _fbHeight
+                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight
             };
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _ssrOutFramebuffer.FboId);
-            _ssrOutFramebuffer.ColorTextureIds = new[] {GL.GenTexture(), GL.GenTexture() };
-            for (int i = 0; i < _ssrOutFramebuffer.ColorTextureIds.Length; i++)
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssrOutFramebuffer.FboId);
+            ssrOutFramebuffer.ColorTextureIds = new[] {GL.GenTexture(), GL.GenTexture() };
+            for (int i = 0; i < ssrOutFramebuffer.ColorTextureIds.Length; i++)
             {
-                GL.BindTexture(TextureTarget.Texture2D, _ssrOutFramebuffer.ColorTextureIds[i]);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, _fbWidth, _fbHeight, 0, PixelFormat.Rgba, PixelType.UnsignedShort, IntPtr.Zero);
+                GL.BindTexture(TextureTarget.Texture2D, ssrOutFramebuffer.ColorTextureIds[i]);
+                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, fbWidth, fbHeight, 0, PixelFormat.Rgba, PixelType.UnsignedShort, IntPtr.Zero);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                     (int)TextureMinFilter.Linear);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
                     (int)TextureMagFilter.Linear);
-                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, _ssrOutFramebuffer.ColorTextureIds[i], 0);
+                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, ssrOutFramebuffer.ColorTextureIds[i], 0);
             }
 
             GL.DrawBuffers(2, new[] { DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1});
 
             CheckFbStatus();
 
-            _screenQuad = _platform.GetScreenQuad();
+            screenQuad = platform.GetScreenQuad();
         }
 
         private static void CheckFbStatus()
@@ -191,14 +190,14 @@ namespace VolumetricShading
 
         public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
         {
-            if (!_enabled) return;
+            if (!Enabled) return;
             
-            targetWindSpeed = (float)_mod.CApi.World.BlockAccessor.GetWindSpeedAt(_game.EntityPlayer.Pos.XYZ).X;
+            targetWindSpeed = (float)mod.capi.World.BlockAccessor.GetWindSpeedAt(game.EntityPlayer.Pos.XYZ).X;
             curWindSpeed += (targetWindSpeed - curWindSpeed) * 0.01f;
 
-            if (_chunkRenderer == null)
+            if (chunkRenderer == null)
             {
-                _chunkRenderer = _game.GetChunkRenderer();
+                chunkRenderer = game.GetChunkRenderer();
             }
 
             if (stage == EnumRenderStage.Opaque)
@@ -212,35 +211,35 @@ namespace VolumetricShading
 
         private void OnRenderSsrOut()
         {
-            if (_ssrOutFramebuffer == null) return;
-            if (_ssrOutShader == null) return;
+            if (ssrOutFramebuffer == null) return;
+            if (ssrOutShader == null) return;
 
-            _platform.LoadFrameBuffer(_ssrOutFramebuffer);
+            platform.LoadFrameBuffer(ssrOutFramebuffer);
             GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 0f});
 
-            var uniforms = _mod.CApi.Render.ShaderUniforms;
-            var ambient = _mod.CApi.Ambient;
+            var uniforms = mod.capi.Render.ShaderUniforms;
+            var ambient = mod.capi.Ambient;
             
             // thanks for declaring this internal btw
-            var dayLight = 1.25f * GameMath.Max(_mod.CApi.World.Calendar.DayLightStrength - _mod.CApi.World.Calendar.MoonLightStrength / 2f, 0.05f);
+            var dayLight = 1.25f * GameMath.Max(mod.capi.World.Calendar.DayLightStrength - mod.capi.World.Calendar.MoonLightStrength / 2f, 0.05f);
 
-            var shader = _ssrOutShader;
+            var shader = ssrOutShader;
             shader.Use();
             GL.Enable(EnableCap.Blend);
 
             var invProjMatrix = new float[16];
             var invModelViewMatrix = new float[16];
-            shader.BindTexture2D("primaryScene", _platform.FrameBuffers[(int) EnumFrameBuffer.Primary].ColorTextureIds[0], 0);
-            shader.BindTexture2D("gPosition", _ssrFramebuffer.ColorTextureIds[0], 1);
-            shader.BindTexture2D("gNormal", _ssrFramebuffer.ColorTextureIds[1], 2);
-            shader.BindTexture2D("gDepth", _platform.FrameBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 3);
-            shader.BindTexture2D("gTint", _ssrFramebuffer.ColorTextureIds[2], 4);
-            shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-            shader.UniformMatrix("invProjectionMatrix", Mat4f.Invert(invProjMatrix, _mod.CApi.Render.CurrentProjectionMatrix));
-            shader.UniformMatrix("invModelViewMatrix", Mat4f.Invert(invModelViewMatrix, _mod.CApi.Render.CameraMatrixOriginf));
+            shader.BindTexture2D("primaryScene", platform.FrameBuffers[(int) EnumFrameBuffer.Primary].ColorTextureIds[0], 0);
+            shader.BindTexture2D("gPosition", ssrFramebuffer.ColorTextureIds[0], 1);
+            shader.BindTexture2D("gNormal", ssrFramebuffer.ColorTextureIds[1], 2);
+            shader.BindTexture2D("gDepth", platform.FrameBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 3);
+            shader.BindTexture2D("gTint", ssrFramebuffer.ColorTextureIds[2], 4);
+            shader.UniformMatrix("projectionMatrix", mod.capi.Render.CurrentProjectionMatrix);
+            shader.UniformMatrix("invProjectionMatrix", Mat4f.Invert(invProjMatrix, mod.capi.Render.CurrentProjectionMatrix));
+            shader.UniformMatrix("invModelViewMatrix", Mat4f.Invert(invModelViewMatrix, mod.capi.Render.CameraMatrixOriginf));
             shader.Uniform("zNear", uniforms.ZNear);
             shader.Uniform("zFar", uniforms.ZNear);
-            shader.Uniform("sunPosition", _mod.CApi.World.Calendar.SunPositionNormalized);
+            shader.Uniform("sunPosition", mod.capi.World.Calendar.SunPositionNormalized);
             shader.Uniform("dayLight", dayLight);
             shader.Uniform("horizonFog", ambient.BlendedCloudDensity);
             shader.Uniform("fogDensityIn", ambient.BlendedFogDensity);
@@ -248,44 +247,44 @@ namespace VolumetricShading
             shader.Uniform("rgbaFog", ambient.BlendedFogColor);
 
             GL.Disable(EnableCap.Blend);
-            _platform.RenderFullscreenTriangle(_screenQuad);
+            platform.RenderFullscreenTriangle(screenQuad);
             shader.Stop();
             GL.Enable(EnableCap.Blend);
-            _platform.UnloadFrameBuffer(_ssrOutFramebuffer);
+            platform.UnloadFrameBuffer(ssrOutFramebuffer);
             
-            _platform.CheckGlError("Error while calculating SSR");
+            platform.CheckGlError("Error while calculating SSR");
         }
         
         private void OnRenderssr()
         {
-            if (_ssrFramebuffer == null) return;
-            if (_ssrShader == null) return;
+            if (ssrFramebuffer == null) return;
+            if (ssrShader == null) return;
 
             // bind our framebuffer
-            _platform.LoadFrameBuffer(_ssrFramebuffer);
+            platform.LoadFrameBuffer(ssrFramebuffer);
             GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 1, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 2, new []{0f, 0f, 0f, 1f });
 
-            _platform.GlEnableCullFace();
-            _platform.GlDepthMask(false);
-            _platform.GlEnableDepthTest();
+            platform.GlEnableCullFace();
+            platform.GlDepthMask(false);
+            platform.GlEnableDepthTest();
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(0, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
             GL.BlendFunc(1, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
             GL.BlendFunc(2, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
 
             // render stuff
-            _game.GlPushMatrix();
-            _game.GlLoadMatrix(_mod.CApi.Render.CameraMatrixOrigin);
-            var shader = _ssrShader;
+            game.GlPushMatrix();
+            game.GlLoadMatrix(mod.capi.Render.CameraMatrixOrigin);
+            var shader = ssrShader;
             shader.Use();
-            shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-            shader.UniformMatrix("modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
-            shader.Uniform("dropletIntensity", _chunkRenderer.GetField<float>("curRainFall"));
+            shader.UniformMatrix("projectionMatrix", mod.capi.Render.CurrentProjectionMatrix);
+            shader.UniformMatrix("modelViewMatrix", mod.capi.Render.CurrentModelviewMatrix);
+            shader.Uniform("dropletIntensity", chunkRenderer.GetField<float>("curRainFall"));
             shader.Uniform("windIntensity", curWindSpeed);
 
-            var textureIds = _chunkRenderer.GetField<int[]>("textureIds");
+            var textureIds = chunkRenderer.GetField<int[]>("textureIds");
             
             shader.BindTexture2D("water1", waterTextures[0], 1);
             shader.BindTexture2D("water2", waterTextures[1], 2);
@@ -295,69 +294,69 @@ namespace VolumetricShading
             {
                 shader.BindTexture2D("terrainTex", textureIds[i], 0);
 
-                for (int j = 0; j < _chunkRenderer.poolsByRenderPass.Length; j++)
+                for (int j = 0; j < chunkRenderer.poolsByRenderPass.Length; j++)
                 {
-                    _platform.GlEnableCullFace();
-                    if (j == (int)EnumChunkRenderPass.BlendNoCull || j == (int)EnumChunkRenderPass.OpaqueNoCull) _platform.GlDisableCullFace();
+                    platform.GlEnableCullFace();
+                    if (j == (int)EnumChunkRenderPass.BlendNoCull || j == (int)EnumChunkRenderPass.OpaqueNoCull) platform.GlDisableCullFace();
 
                     shader.Uniform("renderPass", j);
-                    foreach (var pool in _chunkRenderer.poolsByRenderPass[j])
+                    foreach (var pool in chunkRenderer.poolsByRenderPass[j])
                     {
-                        pool.Render(_game.EntityPlayer.CameraPos, "origin");
+                        pool.Render(game.EntityPlayer.CameraPos, "origin");
                     }
                 }
             }
 
             shader.Stop();
-            _game.GlPopMatrix();
-            _platform.UnloadFrameBuffer(_ssrFramebuffer);
+            game.GlPopMatrix();
+            platform.UnloadFrameBuffer(ssrFramebuffer);
             
-            _platform.GlDepthMask(false);
-            _platform.GlToggleBlend(true);
+            platform.GlDepthMask(false);
+            platform.GlToggleBlend(true);
             
-            _platform.CheckGlError("Error while rendering solid liquids");
+            platform.CheckGlError("Error while rendering solid liquids");
         }
 
         public void OnSetFinalUniforms(ShaderProgramFinal final)
         {
-            if (!_enabled) return;
-            if (_ssrOutFramebuffer == null) return;
+            if (!Enabled) return;
+            if (ssrOutFramebuffer == null) return;
             
-            final.BindTexture2D("ssrScene", _ssrOutFramebuffer.ColorTextureIds[0]);
-            final.BindTexture2D("ssrGlow", _ssrOutFramebuffer.ColorTextureIds[1]);
+            final.BindTexture2D("ssrScene", ssrOutFramebuffer.ColorTextureIds[0]);
+            final.BindTexture2D("ssrGlow", ssrOutFramebuffer.ColorTextureIds[1]);
         }
 
         public void Dispose()
         {
-            var windowsPlatform = _mod.CApi.GetClientPlatformWindows();
+            var windowsPlatform = mod.capi.GetClientPlatformWindows();
 
-            if (_ssrFramebuffer != null)
+            if (ssrFramebuffer != null)
             {
                 // dispose the old framebuffer
-                windowsPlatform.DisposeFrameBuffer(_ssrFramebuffer);
-                _ssrFramebuffer = null;
+                windowsPlatform.DisposeFrameBuffer(ssrFramebuffer);
+                ssrFramebuffer = null;
             }
 
-            if (_ssrOutFramebuffer != null)
+            if (ssrOutFramebuffer != null)
             {
-                windowsPlatform.DisposeFrameBuffer(_ssrOutFramebuffer);
-                _ssrOutFramebuffer = null;
+                windowsPlatform.DisposeFrameBuffer(ssrOutFramebuffer);
+                ssrOutFramebuffer = null;
             }
             
-            if (_ssrShader != null)
+            if (ssrShader != null)
             {
-                _ssrShader.Dispose();
-                _ssrShader = null;
+                ssrShader.Dispose();
+                ssrShader = null;
             }
 
-            if (_ssrOutShader != null)
+            if (ssrOutShader != null)
             {
-                _ssrOutShader.Dispose();
-                _ssrOutShader = null;
+                ssrOutShader.Dispose();
+                ssrOutShader = null;
             }
 
-            _chunkRenderer = null;
-            _screenQuad = null;
+            chunkRenderer = null;
+            screenQuad = null;
         }
 
         public double RenderOrder => 1;
