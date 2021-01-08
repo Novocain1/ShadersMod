@@ -19,6 +19,7 @@ in vec3 fragWorldPos;
 in vec4 worldPos;
 in vec4 fragPosition;
 in vec4 gnormal;
+in vec2 flowVectorf;
 flat in int applyPuddles;
 flat in int flags;
 flat in int waterFlags;
@@ -59,7 +60,13 @@ vec3 NormalFromNoise(vec3 pos)
 
 vec4 WaterNormal(vec2 vec)
 {
-    vec.x -= windWaveCounter / 16.0;
+    vec2 flowVec = normalize(flowVectorf);
+
+    if (length(flowVectorf) > 0.001) {
+        vec -= (flowVec * windWaveCounter) / 16.0;
+	} else {
+        vec.x -= windWaveCounter / 16.0;
+	}
 
     vec4 sample1 = texture(water1, vec);
     vec4 sample2 = texture(water2, vec);

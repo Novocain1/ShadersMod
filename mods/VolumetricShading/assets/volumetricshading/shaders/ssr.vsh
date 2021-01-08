@@ -36,6 +36,7 @@ uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix;
 uniform int renderPass;
 
+out vec2 flowVectorf;
 out vec2 uv;
 out vec3 worldNormal;
 out vec3 fragWorldPos;
@@ -66,6 +67,8 @@ void main(void)
 	flags = renderFlags >> 8;
 	worldPos = vec4(vertexPositionIn + origin, 1.0);
 	shinyOrSkyExposed = (renderFlags >> 13) & 1;
+	
+	flowVectorf = flowVector;
 
 	bool weakWave = ((waterFlagsIn & (1<<27)) > 0);
 
