@@ -26,6 +26,8 @@ flat in int waterFlags;
 flat in int shinyOrSkyExposed;
 
 bool shiny = renderPass != 4 && shinyOrSkyExposed > 0;
+bool skyExposed = renderPass == 4 && shinyOrSkyExposed > 0;
+
 vec3 coord1 = worldPos.xyz + playerpos;
 
 layout(location = 0) out vec4 outGPosition;
@@ -63,8 +65,10 @@ vec4 WaterNormal(vec2 vec)
     vec2 flowVec = normalize(flowVectorf);
 
     if (length(flowVectorf) > 0.001) {
-        vec -= (flowVec * windWaveCounter) / 16.0;
-	} else {
+        vec -= (flowVec * waterWaveCounter);
+	} 
+    else if (skyExposed)
+    {
         vec.x -= windWaveCounter / 16.0;
 	}
 
@@ -72,7 +76,8 @@ vec4 WaterNormal(vec2 vec)
     vec4 sample2 = texture(water2, vec);
     vec4 sample3 = texture(water3, vec);
 
-    float cnt = waterWaveCounter * 4;
+    float cnt = sin(waterWaveCounter * 4) * 0.5 + 0.5;
+    float third = 1.0 / 3.0;
 
     float cnt0 = sin(cnt + 0) * 0.5 + 0.5;
     float cnt1 = sin(cnt + 2) * 0.5 + 0.5;
@@ -158,7 +163,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     float div = ((waterFlags & (1<<27)) > 0) ? 90 : 20;
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
 
-    div /= clamp(windIntensity, 0.05, 0.9);
+    div = skyExposed ? div / clamp(windIntensity, 0.05, 0.9) : div;
 
     vec4 water = WaterNormal(coord1.xz / 2);
     float foam = water.a;
