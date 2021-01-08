@@ -40,6 +40,11 @@ namespace VolumetricShading
         {
             int flags = vars.drawFaceFlags;
 
+            if (vars.block.BlockMaterial == EnumBlockMaterial.Ice || vars.block.BlockMaterial == EnumBlockMaterial.Glass)
+            {
+                vars.VertexFlags.Reflective = true;
+            }
+
             if ((TileSideFlagsEnum.Up & flags) != 0)
             {
                 if (vars.mapchunk.RainHeightMap[(vars.posZ % chunksize) * chunksize + (vars.posX % chunksize)] <= vars.posY)
