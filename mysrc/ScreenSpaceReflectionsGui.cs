@@ -3,7 +3,11 @@
 namespace VolumetricShading
 {
     class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
-    {
+    {  
+        const int switchSize = 20;
+        const int switchPadding = 10;
+        const double sliderWidth = 200.0;
+
         public ScreenSpaceReflectionsGui(ICoreClientAPI capi) : base(capi)
         {
             SetupDialog();
@@ -14,9 +18,6 @@ namespace VolumetricShading
             var dialogBounds = ElementStdBounds.AutosizedMainDialog.WithAlignment(EnumDialogArea.RightBottom)
                 .WithFixedAlignmentOffset(-GuiStyle.DialogToScreenPadding, -GuiStyle.DialogToScreenPadding);
 
-            const int switchSize = 20;
-            const int switchPadding = 10;
-            const double sliderWidth = 200.0;
             var font = CairoFont.WhiteSmallText();
 
             var switchBounds = ElementBounds.Fixed(250, GuiStyle.TitleBarHeight, switchSize, switchSize);
