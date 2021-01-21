@@ -15,6 +15,7 @@ namespace VolumetricShading
     internal class SkyVisibility
     {
         const int chunksize = 32;
+        static bool initialized = false;
        
         #region patch redirectors
         [HarmonyPatch(typeof(CubeTesselator), "Tesselate")][HarmonyPrefix]
@@ -36,18 +37,37 @@ namespace VolumetricShading
         public static void JsonAndLiquidTesselator(ref TCTCache vars) => Tesselate(ref vars);
         #endregion
 
+        public static Dictionary<int, bool> reflectiveById = new Dictionary<int, bool>();
+
+        public static bool ReflectiveTests(Block block)
+        {
+            bool reflective = false;
+            reflective |= block.BlockMaterial == EnumBlockMaterial.Ice;
+            reflective |= block.BlockMaterial == EnumBlockMaterial.Glass;
+            reflective |= block.FirstCodePart() == "rockpolished";
+
+            return reflective;
+        }
+
+        public static void Initialize(ICoreClientAPI capi)
+        {
+            foreach (var val in capi.World.Blocks)
+            {
+                reflectiveById[val.Id] = ReflectiveTests(val);
+            }
+            initialized = true;
+        }
+
         public static void Tesselate(ref TCTCache vars)
         {
             int flags = vars.drawFaceFlags;
+            if (!initialized) Initialize(vars.tct.GetField<ClientMain>("game").Api as ICoreClientAPI);
 
-            if (vars.block.BlockMaterial == EnumBlockMaterial.Ice || vars.block.BlockMaterial == EnumBlockMaterial.Glass)
-            {
-                vars.VertexFlags.Reflective = true;
-            }
+            vars.VertexFlags.Reflective |= reflectiveById[vars.blockId];
 
             if ((TileSideFlagsEnum.Up & flags) != 0)
             {
-                if (vars.mapchunk.RainHeightMap[(vars.posZ % chunksize) * chunksize + (vars.posX % chunksize)] <= vars.posY)
+                if (vars.rainHeightMap[(vars.posZ % chunksize) * chunksize + (vars.posX % chunksize)] <= vars.posY)
                 {
                     vars.ColorMapData.Value |= 1 << 13;
                 }

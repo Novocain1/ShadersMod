@@ -5,6 +5,7 @@ uniform sampler2D terrainTex;
 uniform sampler2D water1;
 uniform sampler2D water2;
 uniform sampler2D water3;
+uniform sampler2D imperfect;
 uniform vec3 playerpos;
 uniform float windWaveCounter;
 uniform float waterWaveCounter;
@@ -24,6 +25,7 @@ flat in int applyPuddles;
 flat in int flags;
 flat in int waterFlags;
 flat in int shinyOrSkyExposed;
+ivec2 size = textureSize(terrainTex, 0);
 
 bool shiny = renderPass != 4 && shinyOrSkyExposed > 0;
 bool skyExposed = renderPass == 4 && shinyOrSkyExposed > 0;
@@ -186,6 +188,12 @@ void TopsoilPass(inout vec3 normalMap, inout float mul)
 
 void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
 {
+    if (shiny)
+    {
+        vec4 imp = texture(imperfect, uv * size / 512);
+        normalMap = imp.xyz / 8;
+    }
+
     vec4 color = texture(terrainTex, uv);
     mul = color.a < 0.01 ? 1.0 : mul;
 

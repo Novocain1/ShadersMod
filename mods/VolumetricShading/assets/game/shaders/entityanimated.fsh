@@ -22,6 +22,7 @@ uniform sampler2D entityTex;
 uniform float alphaTest = 0.001;
 uniform float windWaveCounter;
 uniform float glitchEffectStrength;
+uniform int entityId;
 
 flat in int renderFlags;
 in vec3 normal;
@@ -46,10 +47,10 @@ void main () {
 	//outColor = vec4((normal.x + 0.5) / 2, (normal.y + 0.5)/2, (normal.z+0.5)/2, 1);	
 	
 	if (glitchEffectStrength > 0) {
-		float g = gnoise(vec3(gl_FragCoord.y / 2.0, gl_FragCoord.x / 2.0, windWaveCounter*30));
+		float g = gnoise(vec3(gl_FragCoord.y / 2.0, gl_FragCoord.x / 2.0, windWaveCounter*30 + entityId * 3));
 		outColor.a *= mix(1, clamp(0.7 + g / 2, 0, 1), glitchEffectStrength);
 		
-		float b = gnoise(vec3(0, 0, windWaveCounter*60));
+		float b = gnoise(vec3(0, 0, windWaveCounter*60 + entityId * 3));
 		outColor.a *= mix(1, clamp(b * 10 + 2, 0, 1), glitchEffectStrength);
 	}
 

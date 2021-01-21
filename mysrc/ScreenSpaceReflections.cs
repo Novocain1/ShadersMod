@@ -32,7 +32,7 @@ namespace VolumetricShading
         private float targetWindSpeed;
         private float curWindSpeed;
 
-        int[] waterTextures = new int[3];
+        int[] waterTextures = new int[4];
         
         public ScreenSpaceReflections(VolumetricShadingMod mod)
         {
@@ -54,6 +54,7 @@ namespace VolumetricShading
             waterTextures[0] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/1.png"));
             waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/2.png"));
             waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/3.png"));
+            waterTextures[3] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/imperfect.png"));
         }
 
         private void OnEnabledChanged(bool enabled)
@@ -289,6 +290,7 @@ namespace VolumetricShading
             shader.BindTexture2D("water1", waterTextures[0], 1);
             shader.BindTexture2D("water2", waterTextures[1], 2);
             shader.BindTexture2D("water3", waterTextures[2], 3);
+            shader.BindTexture2D("imperfect", waterTextures[3], 4);
 
             for (int i = 0; i < textureIds.Length; i++)
             {
