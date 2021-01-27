@@ -18,7 +18,7 @@ namespace VolumetricShading
         
         private FrameBufferRef ssrFramebuffer;
         private FrameBufferRef ssrOutFramebuffer;
-        private IShaderProgram ssrShader;
+        private IShaderProgram[] ssrShaderByRenderPass = new IShaderProgram[Enum.GetValues(typeof(EnumChunkRenderPass)).Length];
         private IShaderProgram ssrOutShader;
         
         private readonly ClientMain game;
@@ -65,20 +65,28 @@ namespace VolumetricShading
         private bool ReloadShaders()
         {
             var success = true;
-            
-            ssrShader?.Dispose();
-            ssrOutShader?.Dispose();
+            ShaderProgram shader;
 
-            var shader = (ShaderProgram) mod.capi.Shader.NewShaderProgram();
-            shader.AssetDomain = mod.Mod.Info.ModID;
-            mod.capi.Shader.RegisterFileShaderProgram("ssr", shader);
-            if (!shader.Compile()) success = false;
-            ssrShader = shader;
+            for (int i = 0; i < ssrShaderByRenderPass.Length; i++)
+            {
+                var val = ssrShaderByRenderPass[i];
+                val?.Dispose();
+
+                shader = (ShaderProgram)mod.capi.Shader.NewShaderProgram();
+                shader.AssetDomain = mod.Mod.Info.ModID;
+                mod.capi.Shader.RegisterFileShaderProgram("ssr", shader);
+                success &= shader.Compile();
+                
+                ssrShaderByRenderPass[i] = shader;
+            }
+
+            ssrOutShader?.Dispose();
 
             shader = (ShaderProgram) mod.capi.Shader.NewShaderProgram();
             shader.AssetDomain = mod.Mod.Info.ModID;
             mod.capi.Shader.RegisterFileShaderProgram("ssrout", shader);
-            if (!shader.Compile()) success = false;
+            success &= shader.Compile();
+
             ssrOutShader = shader;
 
             return success;
@@ -259,7 +267,6 @@ namespace VolumetricShading
         private void OnRenderssr()
         {
             if (ssrFramebuffer == null) return;
-            if (ssrShader == null) return;
 
             // bind our framebuffer
             platform.LoadFrameBuffer(ssrFramebuffer);
@@ -278,38 +285,39 @@ namespace VolumetricShading
             // render stuff
             game.GlPushMatrix();
             game.GlLoadMatrix(mod.capi.Render.CameraMatrixOrigin);
-            var shader = ssrShader;
-            shader.Use();
-            shader.UniformMatrix("projectionMatrix", mod.capi.Render.CurrentProjectionMatrix);
-            shader.UniformMatrix("modelViewMatrix", mod.capi.Render.CurrentModelviewMatrix);
-            shader.Uniform("dropletIntensity", chunkRenderer.GetField<float>("curRainFall"));
-            shader.Uniform("windIntensity", curWindSpeed);
-
             var textureIds = chunkRenderer.GetField<int[]>("textureIds");
-            
-            shader.BindTexture2D("water1", waterTextures[0], 1);
-            shader.BindTexture2D("water2", waterTextures[1], 2);
-            shader.BindTexture2D("water3", waterTextures[2], 3);
-            shader.BindTexture2D("imperfect", waterTextures[3], 4);
 
             for (int i = 0; i < textureIds.Length; i++)
             {
-                shader.BindTexture2D("terrainTex", textureIds[i], 0);
-
                 for (int j = 0; j < chunkRenderer.poolsByRenderPass.Length; j++)
                 {
                     platform.GlEnableCullFace();
                     if (j == (int)EnumChunkRenderPass.BlendNoCull || j == (int)EnumChunkRenderPass.OpaqueNoCull) platform.GlDisableCullFace();
+
+                    var shader = ssrShaderByRenderPass[j];
+                    if (shader == null) continue;
+
+                    shader.Use();
+                    shader.BindTexture2D("terrainTex", textureIds[i], 0);
+                    shader.UniformMatrix("projectionMatrix", mod.capi.Render.CurrentProjectionMatrix);
+                    shader.UniformMatrix("modelViewMatrix", mod.capi.Render.CurrentModelviewMatrix);
+                    shader.Uniform("dropletIntensity", chunkRenderer.GetField<float>("curRainFall"));
+                    shader.Uniform("windIntensity", curWindSpeed);
+                    shader.BindTexture2D("water1", waterTextures[0], 1);
+                    shader.BindTexture2D("water2", waterTextures[1], 2);
+                    shader.BindTexture2D("water3", waterTextures[2], 3);
+                    shader.BindTexture2D("imperfect", waterTextures[3], 4);
 
                     shader.Uniform("renderPass", j);
                     foreach (var pool in chunkRenderer.poolsByRenderPass[j])
                     {
                         pool.Render(game.EntityPlayer.CameraPos, "origin");
                     }
+                    
+                    shader.Stop();
                 }
             }
-
-            shader.Stop();
+            
             game.GlPopMatrix();
             platform.UnloadFrameBuffer(ssrFramebuffer);
             
@@ -344,11 +352,13 @@ namespace VolumetricShading
                 windowsPlatform.DisposeFrameBuffer(ssrOutFramebuffer);
                 ssrOutFramebuffer = null;
             }
-            
-            if (ssrShader != null)
+
+
+            for (int i = 0; i < ssrShaderByRenderPass.Length; i++)
             {
-                ssrShader.Dispose();
-                ssrShader = null;
+                var val = ssrShaderByRenderPass[i];
+                val?.Dispose();
+                ssrShaderByRenderPass[i] = null;
             }
 
             if (ssrOutShader != null)
