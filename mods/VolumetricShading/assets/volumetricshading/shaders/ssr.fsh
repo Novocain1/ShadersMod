@@ -21,6 +21,7 @@ in vec4 worldPos;
 in vec4 fragPosition;
 in vec4 gnormal;
 in vec2 flowVectorf;
+in vec4 rgba;
 flat in int applyPuddles;
 flat in int flags;
 flat in int waterFlags;
@@ -35,6 +36,7 @@ vec3 coord1 = worldPos.xyz + playerpos;
 layout(location = 0) out vec4 outGPosition;
 layout(location = 1) out vec4 outGNormal;
 layout(location = 2) out vec4 outTint;
+layout(location = 3) out vec4 outLight;
 
 #include colormap.fsh
 #include commonnoise.fsh
@@ -67,11 +69,11 @@ vec4 WaterNormal(vec2 vec)
     vec2 flowVec = normalize(flowVectorf);
 
     if (length(flowVectorf) > 0.001) {
-        vec -= (flowVec * waterWaveCounter);
+        vec += (flowVec * waterWaveCounter);
 	} 
     else if (skyExposed)
     {
-        vec.x -= windWaveCounter / 16.0;
+        vec.x += windWaveCounter / 16.0;
 	}
 
     vec4 sample1 = texture(water1, vec);
@@ -167,7 +169,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
 
     div = skyExposed ? div / clamp(windIntensity, 0.05, 0.9) : div;
 
-    vec4 water = WaterNormal(coord1.xz / 2);
+    vec4 water = WaterNormal(uv * size / 32);
     float foam = water.a;
 
     vec3 nmNoise = water.rgb / div; //noise1 + noise2 + noise3;
@@ -177,6 +179,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     
     outTint = vec4(getColorMapping(terrainTex).rgb, mul);
     outTint.rgb += nmNoise.y * div + foam * div;
+    //outTint *= vec4(rgba.rgb, 1.0);
 
     if (shinyOrSkyExposed > 0 && dropletIntensity > 0.0) GenSplash(normalMap);
 }
@@ -203,6 +206,10 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
 
 	outGPosition = vec4(worldPos, mul);
 	outGNormal = vec4(normalize(camNormalMap + gnormal.xyz), mul);
+    
+    outLight = color.a < 0.01 ? vec4(vec3(1), 1) : rgba;
+    if (renderPass == 4) outLight.a -= color.a;
+
     if (!skipTint) outTint = vec4(getColorMapping(terrainTex).rgb, mul);
 }
 

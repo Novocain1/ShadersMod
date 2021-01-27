@@ -150,7 +150,7 @@ namespace VolumetricShading
                 mainBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 0);
 
             // create our normal and position textures
-            ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(3, _ => GL.GenTexture());
+            ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(4, _ => GL.GenTexture());
 
             // bind and setup textures
             for (var i = 0; i < 2; ++i)
@@ -158,8 +158,9 @@ namespace VolumetricShading
                 SetupVertexTexture(ssrFramebuffer, i);
             }
             SetupColorTexture(ssrFramebuffer, 2);
+            SetupColorTexture(ssrFramebuffer, 3);
 
-            GL.DrawBuffers(3, new []{DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1, DrawBuffersEnum.ColorAttachment2 });
+            GL.DrawBuffers(4, new []{DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1, DrawBuffersEnum.ColorAttachment2, DrawBuffersEnum.ColorAttachment3 });
 
             CheckFbStatus();
 
@@ -243,6 +244,7 @@ namespace VolumetricShading
             shader.BindTexture2D("gNormal", ssrFramebuffer.ColorTextureIds[1], 2);
             shader.BindTexture2D("gDepth", platform.FrameBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 3);
             shader.BindTexture2D("gTint", ssrFramebuffer.ColorTextureIds[2], 4);
+            shader.BindTexture2D("gLight", ssrFramebuffer.ColorTextureIds[3], 5);
             shader.UniformMatrix("projectionMatrix", mod.capi.Render.CurrentProjectionMatrix);
             shader.UniformMatrix("invProjectionMatrix", Mat4f.Invert(invProjMatrix, mod.capi.Render.CurrentProjectionMatrix));
             shader.UniformMatrix("invModelViewMatrix", Mat4f.Invert(invModelViewMatrix, mod.capi.Render.CameraMatrixOriginf));
@@ -273,6 +275,7 @@ namespace VolumetricShading
             GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 1, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 2, new []{0f, 0f, 0f, 1f });
+            GL.ClearBuffer(ClearBuffer.Color, 3, new []{0f, 0f, 0f, 1f });
 
             platform.GlEnableCullFace();
             platform.GlDepthMask(false);
@@ -281,6 +284,7 @@ namespace VolumetricShading
             GL.BlendFunc(0, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
             GL.BlendFunc(1, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
             GL.BlendFunc(2, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
+            GL.BlendFunc(3, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
 
             // render stuff
             game.GlPushMatrix();
@@ -307,6 +311,7 @@ namespace VolumetricShading
                     shader.BindTexture2D("water2", waterTextures[1], 2);
                     shader.BindTexture2D("water3", waterTextures[2], 3);
                     shader.BindTexture2D("imperfect", waterTextures[3], 4);
+                    shader.Uniform("rgbaAmbientIn", game.GetField<AmbientManager>("AmbientManager").BlendedAmbientColor);
 
                     shader.Uniform("renderPass", j);
                     foreach (var pool in chunkRenderer.poolsByRenderPass[j])

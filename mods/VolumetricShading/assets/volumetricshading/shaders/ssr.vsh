@@ -35,6 +35,7 @@ uniform vec3 origin;
 uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix;
 uniform int renderPass;
+uniform vec3 rgbaAmbientIn;
 
 out vec2 flowVectorf;
 out vec2 uv;
@@ -43,6 +44,7 @@ out vec3 fragWorldPos;
 out vec4 worldPos;
 out vec4 fragPosition;
 out vec4 gnormal;
+out vec4 rgba;
 
 flat out int applyPuddles;
 flat out int flags;
@@ -91,6 +93,8 @@ void main(void)
     fragPosition = cameraPos;
 	gnormal = modelViewMatrix * vec4(fragNormal.xyz, 0);
     waterFlags = waterFlagsIn;
+
+	rgba = rgbaLightIn;
 
 	// Now the lowest 3 bits are used as an unsigned number 
 	// to fix Z-Fighting on blocks over certain other blocks. 

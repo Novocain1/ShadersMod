@@ -6,6 +6,7 @@ uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gTint;
 uniform sampler2D gDepth;
+uniform sampler2D gLight;
 
 uniform mat4 projectionMatrix;
 uniform mat4 invProjectionMatrix;
@@ -49,6 +50,10 @@ vec4 raytrace(vec3 fragpos, vec3 rvector) {
     fragpos += rvector;
 	vec3 tvector = rvector;
     int sr = 0;
+    
+    bool hit = false;
+    vec3 hitFragpos0 = vec3(0);
+    vec3 hitPos = vec3(0);
 
     for(int i = 0; i < 25; ++i) {
         vec3 pos = nvec3(projectionMatrix * nvec4(fragpos)) * 0.5 + 0.5;
@@ -56,14 +61,16 @@ vec4 raytrace(vec3 fragpos, vec3 rvector) {
         vec3 fragpos0 = vec3(pos.st, texture(gDepth, pos.st).r);
         fragpos0 = nvec3(invProjectionMatrix * nvec4(fragpos0 * 2.0 - 1.0));
         float err = distance(fragpos,fragpos0);
-		if(err < pow(length(rvector),1.175)) {
+		if(err < pow(length(rvector), 1.175)) {
+            hit = true;
+            hitFragpos0 = fragpos0;
+            hitPos = pos;
             sr++;
+            
             if(sr >= maxf){
-                float isFurther = (fragpos0.z < start.z) ? 1 : 0;
-                color = pow(texture(primaryScene, pos.st), vec4(VSMOD_SSR_REFLECTION_DIMMING));
-                color.a = clamp(1.0 - pow(cdist(pos.st), 20.0), 0.0, 1.0) * isFurther;
                 break;
             }
+            
             tvector -= rvector;
             rvector *= ref;
         }
@@ -71,6 +78,13 @@ vec4 raytrace(vec3 fragpos, vec3 rvector) {
         tvector += rvector;
 		fragpos = start + tvector;
     }
+
+    if (hit) {
+        float isFurther = (hitFragpos0.z < start.z) ? 1 : 0;
+        color = pow(texture(primaryScene, hitPos.st), vec4(VSMOD_SSR_REFLECTION_DIMMING));
+        color.a = clamp(1.0 - pow(cdist(hitPos.st), 20.0), 0.0, 1.0) * isFurther;
+    }
+    
     return color;
 }
 
@@ -98,9 +112,11 @@ float getFogLevelCustom(float depth, float fogMin, float fogDensity, float world
 
 void main(void) {
     vec4 positionFrom = texture(gPosition, texcoord);
+    vec4 light = texture(gLight, texcoord);
     vec3 unitPositionFrom = normalize(positionFrom.xyz);
     vec3 normal = normalize(texture(gNormal, texcoord).xyz);
     vec3 pivot = normalize(reflect(unitPositionFrom, normal));
+    float lightness = max(max(light.r, light.g), max(light.b, light.a));
 
     outColor = vec4(0);
 
@@ -119,15 +135,13 @@ void main(void) {
         vec4 outGlow = vec4(0);
         
         vec4 worldNormal = invModelViewMatrix * vec4(normal, 0.0);
-        float upness = clamp(dot(worldNormal.xyz, vec3(0, 1, 0)), 0, 1);
         
         pivot = (invModelViewMatrix * vec4(pivot, 0.0)).xyz;
         getSkyColorAt(pivot, sunPosition, 0.0, clamp(dayLight, 0, 1), horizonFog, skyColor, outGlow);
-        skyColor.rgb = pow(skyColor.rgb, vec3(VSMOD_SSR_REFLECTION_DIMMING));
-        reflection.rgb = mix(reflection.rgb, skyColor.rgb, VSMOD_SSR_SKY_MIXIN * upness);
-        reflection.rgb = mix(skyColor.rgb * upness, reflection.rgb, reflection.a);
 
-        reflection.a = 1f;
+        vec3 skyColorLit = mix(light.rgb, skyColor.rgb * 4.0, light.a);
+        
+        reflection.rgb = mix(reflection.rgb, skyColorLit.rgb, VSMOD_SSR_SKY_MIXIN);
 
         float normalDotEye = dot(normal, unitPositionFrom);
 		float fresnel = pow(clamp(1.0 + normalDotEye,0.0,1.0), 4.0);
@@ -143,6 +157,9 @@ void main(void) {
         
         outColor.a *= (1.0f - positionFrom.w) * fresnel;
     }
+    
+    //outColor.rgb *= lightness;
+    //outColor.rgb = vec3(lightness);
 
     float findBright = min(max(outColor.r, max(outColor.g, outColor.b)), 0.25) - fogDensityIn;
     outGlow = vec4(findBright, 0, 0, outColor.a);
