@@ -155,4 +155,5 @@ void main(void) {
         
         outColor.a *= (1.0f - positionFrom.w) * fresnel;
     }
+    //outColor.rgb = light.rgb + light.a;
 }

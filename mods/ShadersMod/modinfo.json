@@ -1,0 +1,12 @@
+﻿{
+  "type": "code",
+  "modid": "shadersmod",
+  "name": "Shaders Mod",
+  "authors": [ "xxmicloxx", "Novocain" ],
+  "description": "Adds multiple shading techniques to the base game. A flavor of VolumetricShading originally made by xxmicloxx, tweaked by Novocain.",
+  "version": "1.0.0",
+  "side":  "Client", 
+  "dependency": {
+    "game": ""
+  }
+}

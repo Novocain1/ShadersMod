@@ -54,10 +54,10 @@ namespace Shaders
             mod.Events.RebuildFramebuffers += SetupFramebuffers;
             SetupFramebuffers(platform.FrameBuffers);
 
-            waterTextures[0] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/1.png"));
-            waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/2.png"));
-            waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/3.png"));
-            waterTextures[3] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/imperfect.png"));
+            waterTextures[0] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/1.png"));
+            waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/2.png"));
+            waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/3.png"));
+            waterTextures[3] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/imperfect.png"));
         }
 
         private void RegisterInjectorProperties()
@@ -116,37 +116,6 @@ namespace Shaders
             return success;
         }
 
-        private void SetupVertexTexture(FrameBufferRef fbRef, int textureId)
-        {
-            GL.BindTexture(TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId]);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, fbWidth, fbHeight, 0,
-                PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                (int)TextureMagFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor,
-                new[] { 1f, 1f, 1f, 1f });
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
-                (int)TextureWrapMode.ClampToBorder);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
-                (int)TextureWrapMode.ClampToBorder);
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + textureId,
-                TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId], 0);
-        }
-
-        private void SetupColorTexture(FrameBufferRef fbRef, int textureId)
-        {
-            GL.BindTexture(TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId]);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, fbWidth, fbHeight, 0, PixelFormat.Rgba, PixelType.UnsignedShort, IntPtr.Zero);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                (int)TextureMagFilter.Linear);
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + textureId,
-                TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId], 0);
-        }
-
         public void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
         {
             mod.Mod.Logger.Event("Recreating framebuffers");
@@ -167,7 +136,7 @@ namespace Shaders
             fbHeight = (int) (platform.window.Height * ClientSettings.SSAA);
             ssrFramebuffer = new FrameBufferRef
             {
-                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight
+                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight, DepthTextureId = mainBuffers[(int)EnumFrameBuffer.Primary].DepthTextureId
             };
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssrFramebuffer.FboId);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D,
@@ -177,16 +146,9 @@ namespace Shaders
             ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(4, _ => GL.GenTexture());
 
             // bind and setup textures
-            for (var i = 0; i < 2; ++i)
-            {
-                SetupVertexTexture(ssrFramebuffer, i);
-            }
-            SetupColorTexture(ssrFramebuffer, 2);
-            SetupColorTexture(ssrFramebuffer, 3);
+            ssrFramebuffer.SetupTextures(new[] { 0, 1 }, new[] { 2, 3 });
 
-            GL.DrawBuffers(4, new []{DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1, DrawBuffersEnum.ColorAttachment2, DrawBuffersEnum.ColorAttachment3 });
-
-            CheckFbStatus();
+            FrameBuffers.CheckStatus();
 
             // setup output framebuffer
             ssrOutFramebuffer = new FrameBufferRef
@@ -195,32 +157,14 @@ namespace Shaders
             };
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssrOutFramebuffer.FboId);
             ssrOutFramebuffer.ColorTextureIds = new[] { GL.GenTexture() };
-            
-            for (int i = 0; i < ssrOutFramebuffer.ColorTextureIds.Length; i++)
-            {
-                GL.BindTexture(TextureTarget.Texture2D, ssrOutFramebuffer.ColorTextureIds[i]);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, fbWidth, fbHeight, 0, PixelFormat.Rgba, PixelType.UnsignedShort, IntPtr.Zero);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                    (int)TextureMinFilter.Linear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                    (int)TextureMagFilter.Linear);
-                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, ssrOutFramebuffer.ColorTextureIds[i], 0);
-            }
+
+            ssrOutFramebuffer.SetupColorTexture(0);
 
             GL.DrawBuffers(1, new[] { DrawBuffersEnum.ColorAttachment0 });
 
-            CheckFbStatus();
+            FrameBuffers.CheckStatus();
 
             screenQuad = platform.GetScreenQuad();
-        }
-
-        private static void CheckFbStatus()
-        {
-            var errorCode = GL.Ext.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
-            if (errorCode != FramebufferErrorCode.FramebufferComplete)
-            {
-                throw new Exception("Could not create framebuffer: " + errorCode);
-            }
         }
 
         public void OnRenderFrame(float deltaTime, EnumRenderStage stage)

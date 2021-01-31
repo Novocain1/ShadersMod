@@ -5,7 +5,7 @@
     <ProjectGuid>{45DDEEEC-0F0D-4CB2-869A-3A192E4E1CA2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoStandardLibraries>false</NoStandardLibraries>
-    <AssemblyName>VolumetricShading</AssemblyName>
+    <AssemblyName>ShadersMod</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -14,7 +14,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>mods\VolumetricShading\</OutputPath>
+    <OutputPath>mods\ShadersMod\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -30,7 +30,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <RootNamespace>VolumetricShading</RootNamespace>
+    <RootNamespace>ShadersMod</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
@@ -62,6 +62,7 @@
     <Compile Include="src\Dialog\Config\ConfigGui.cs" />
     <Compile Include="src\Techniques\ScreenSpaceDirectionalOcclusion.cs" />
     <Compile Include="src\Util\Events.cs" />
+    <Compile Include="src\Util\FrameBuffers.cs" />
     <Compile Include="src\Util\HackMan.cs" />
     <Compile Include="src\Util\HarmonyPatches.cs" />
     <Compile Include="src\ModSettings.cs" />
