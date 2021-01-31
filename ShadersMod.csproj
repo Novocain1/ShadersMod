@@ -82,37 +82,9 @@
   <ItemGroup>
     <None Include=".vs\VolumetricShading\DesignTimeBuild\.dtbcache.v2" />
     <None Include=".vs\VolumetricShading\v16\.suo" />
-    <None Include="mods\VolumetricShading\assets\game\shaderincludes\fogandlight.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaderincludes\skycolor.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\celestialobject.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\chunkliquid.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\chunkopaque.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\chunktopsoil.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\chunktransparent.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\clouds.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\entityanimated.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\final.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\godrays.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\sky.fsh" />
-    <None Include="mods\VolumetricShading\assets\game\shaders\ssao.fsh" />
-    <None Include="mods\VolumetricShading\assets\volumetricshading\shaders\ssrliquid.fsh" />
-    <None Include="mods\VolumetricShading\assets\volumetricshading\shaders\ssrout.fsh" />
-    <None Include="mods\VolumetricShading\assets\volumetricshading\workspace.code-workspace" />
-    <None Include="mods\VolumetricShading\modinfo.json" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="mods\VolumetricShading\assets\game\shaderincludes\fogandlight.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaderincludes\shadowcoords.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\chunkliquid.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\chunkopaque.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\chunktopsoil.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\chunktransparent.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\clouds.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\entityanimated.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\godrays.vsh" />
-    <Content Include="mods\VolumetricShading\assets\game\shaders\sky.vsh" />
-    <Content Include="mods\VolumetricShading\assets\volumetricshading\shaders\ssrliquid.vsh" />
-    <Content Include="mods\VolumetricShading\assets\volumetricshading\shaders\ssrout.vsh" />
+    <Folder Include="mods\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>
