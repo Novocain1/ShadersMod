@@ -21,7 +21,6 @@ uniform vec4 rgbaFog;
 
 in vec2 texcoord;
 out vec4 outColor;
-out vec4 outGlow;
 
 #include dither.fsh
 #include fogandlight.fsh
@@ -29,7 +28,7 @@ out vec4 outGlow;
 
 float comp = 1.0-zNear/zFar/zFar;
 
-const int maxf = 3;				//number of refinements
+const int maxf = 7;				//number of refinements
 const float ref = 0.11;			//refinement multiplier
 const float inc = 3.0;			//increasement factor at each step
 
@@ -43,7 +42,7 @@ float cdist(vec2 coord) {
 	return max(abs(coord.s-0.5),abs(coord.t-0.5))*2.0;
 }
 
-vec4 raytrace(vec3 fragpos, vec3 rvector) {
+vec4 raymarch(vec3 fragpos, vec3 rvector) {
     vec4 color = vec4(0.0);
     vec3 start = fragpos;
 	rvector *= 1.2;
@@ -116,7 +115,6 @@ void main(void) {
     vec3 unitPositionFrom = normalize(positionFrom.xyz);
     vec3 normal = normalize(texture(gNormal, texcoord).xyz);
     vec3 pivot = normalize(reflect(unitPositionFrom, normal));
-    float lightness = max(max(light.r, light.g), max(light.b, light.a));
 
     outColor = vec4(0);
 
@@ -130,7 +128,7 @@ void main(void) {
             return;
         }
 
-        vec4 reflection = raytrace(positionFrom.xyz, pivot);
+        vec4 reflection = raymarch(positionFrom.xyz, pivot);
         vec4 skyColor = vec4(0);
         vec4 outGlow = vec4(0);
         
@@ -141,7 +139,7 @@ void main(void) {
 
         vec3 skyColorLit = mix(light.rgb, skyColor.rgb * 4.0, light.a);
         
-        reflection.rgb = mix(reflection.rgb, skyColorLit.rgb, VSMOD_SSR_SKY_MIXIN);
+        reflection.rgb = mix(reflection.rgb, skyColorLit.rgb, mix(0.0, VSMOD_SSR_SKY_MIXIN, 1.0 - light.a));
 
         float normalDotEye = dot(normal, unitPositionFrom);
 		float fresnel = pow(clamp(1.0 + normalDotEye,0.0,1.0), 4.0);
@@ -157,10 +155,4 @@ void main(void) {
         
         outColor.a *= (1.0f - positionFrom.w) * fresnel;
     }
-    
-    //outColor.rgb *= lightness;
-    //outColor.rgb = vec3(lightness);
-
-    float findBright = min(max(outColor.r, max(outColor.g, outColor.b)), 0.25) - fogDensityIn;
-    outGlow = vec4(findBright, 0, 0, outColor.a);
 }

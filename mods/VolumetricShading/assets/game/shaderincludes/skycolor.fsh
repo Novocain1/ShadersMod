@@ -1,4 +1,4 @@
-uniform float playerToSealevelOffset;
+﻿uniform float playerToSealevelOffset;
 uniform int ditherSeed;
 uniform int horizontalResolution;
 uniform float fogWaveCounter;

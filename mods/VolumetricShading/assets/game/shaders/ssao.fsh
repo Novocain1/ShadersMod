@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;

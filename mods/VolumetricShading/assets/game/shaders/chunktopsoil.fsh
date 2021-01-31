@@ -1,10 +1,11 @@
-#version 330 core
+﻿#version 330 core
 
 uniform sampler2D terrainTex;
 uniform sampler2D terrainTexLinear;
 
 uniform float alphaTest = 0.01;
 uniform vec2 blockTextureSize;
+uniform float fogDensityIn;
 
 in vec4 rgba;
 in vec4 rgbaFog;
@@ -60,7 +61,7 @@ void main()
 	float intensity = 0.45;
 	#endif
 	
-	outColor = applyFogAndShadowWithNormal(outColor, fogAmount, normal, 1, intensity);  
+	outColor = applyOverexposedFogAndShadow(outColor, fogAmount, normal, 1, intensity, vertexPosition, fogDensityIn);  
 	outColor.a = rgbaFog.a;
 
 	// When looking through tinted glass you can clearly see the edges where we fade to sky color
@@ -93,7 +94,6 @@ void main()
 	outGPosition = vec4(fragPosition.xyz, fogAmount + glowLevel + scatterAmt * VOLUMETRIC_SSAO_DECLINE);
 	outGNormal = gnormal;
 #endif
-	float findBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0, 0.25) - fogAmount;
 
     outGlow = vec4(glowLevel + glow, scatterAmt, 0, outColor.a);
 }

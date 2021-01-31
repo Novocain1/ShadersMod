@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 
 uniform sampler2D primaryScene;
 uniform sampler2D glowParts;  // The second color buffer (outGlow var)
@@ -8,7 +8,6 @@ uniform sampler2D ssaoScene;
 
 #if VSMOD_SSR > 0
 uniform sampler2D ssrScene;
-uniform sampler2D ssrGlow;
 #endif
 
 uniform float gammaLevel;
@@ -16,7 +15,7 @@ uniform float brightnessLevel;
 uniform float sepiaLevel;
 uniform float damageVignetting;
 uniform float frostVignetting;
-uniform float extraGamma = 1.0;
+uniform float extraGamma = 1;
 uniform float windWaveCounter;
 uniform float glitchEffectStrength;
 
@@ -40,7 +39,7 @@ float SmoothStep(float x) { return x * x * (3.0f - 2.0f * x); }
 
 vec4 ColorGrade(vec4 color) {
 	// I don't know why, but this seems to make the scene look a lot better
-	color.a = dot(color.rgb, vec3(0.299, 0.587, 0.114)); 
+	color.a = dot(color.rgb, vec3(0.299, 0.587, 0.114));
 	
 	vec3 hsl = rgb2hsl(color.rgb);
 
@@ -52,7 +51,7 @@ vec4 ColorGrade(vec4 color) {
 	
 	
 	color.rgb = hsl2rgb(hsl);
-
+	
 	color.rgb = pow(color.rgb, vec3(1.0 / extraGamma));
 
 	color.rgb *= brightnessLevel;
@@ -120,12 +119,6 @@ void main(void)
 	#if BLOOM == 1
 		vec4 bloomCol = texture(bloomParts, texCoord);
 		float glowLevel = texture(glowParts, texCoord).r;
-
-		#if VSMOD_SSR > 0
-			vec4 glow = texture(ssrGlow, texCoord);
-			bloomCol += glow.r;
-			glowLevel += glow.r;
-		#endif
 		
 		//vec3 blendedBloomCol = (bloomCol.rgb + color.rgb * (1-bloomCol.a));
 		//color.rgb = (color.rgb + blendedBloomCol) / 2;
@@ -146,9 +139,7 @@ void main(void)
 	
 	#if GODRAYS > 0
 		vec4 grc = texture(godrayParts, texCoord);
-		//grc = mix(grc, color, 0.5);
 		color.rgb += grc.rgb;
-		//color.rgb = grc.rgb;
 		color.rgb = min(color.rgb, vec3(1));
 		color.a=1;
 	#endif
@@ -198,12 +189,7 @@ void main(void)
 	}
 	
 	outColor.rgb = mix(outColor.rgb, vec3(0), grayvignette);
-	
 	outColor.a=1;
-
-	//outColor.rgb = ssr.rgb;
 	
-	//outColor.rgb = vec3(bloomCol.r);
-
 	//outColor.rg=texCoord.xy;
 }

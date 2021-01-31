@@ -2,17 +2,22 @@
 using Vintagestory.API.Common;
 using HarmonyLib;
 
-namespace VolumetricShading
+namespace Shaders
 {
-    public class VolumetricShadingMod : ModSystem
+    public class ShadersMod : ModSystem
     {
-        public static VolumetricShadingMod Instance;
+        public static ShadersMod Instance { get; private set; }
 
-        public ICoreClientAPI capi;
+        public ICoreClientAPI capi { get; private set; }
+        public Events Events { get; private set; }
 
-        public ShaderInjector ShaderInjector;
-        public ScreenSpaceReflections ScreenSpaceReflections;
-        public VolumetricLighting VolumetricLighting;
+        public ShaderInjector ShaderInjector { get; private set; }
+        public ScreenSpaceReflections ScreenSpaceReflections { get; private set; }
+        public VolumetricLighting VolumetricLighting { get; private set; }
+        public OverexposureEffect OverexposureEffect { get; private set; }
+        public ScreenSpaceDirectionalOcclusion ScreenSpaceDirectionalOcclusion { get; private set; }
+        public ShadowTweaks ShadowTweaks { get; private set; }
+
         public ConfigGui ConfigGui;
         public GuiDialog CurrentDialog;
 
@@ -25,16 +30,27 @@ namespace VolumetricShading
 
         public override void StartClientSide(ICoreClientAPI api)
         {
-            Instance = this;
-            capi = api;
-            
-            ShaderInjector = new ShaderInjector();
-            VolumetricLighting = new VolumetricLighting(this);
-            ScreenSpaceReflections = new ScreenSpaceReflections(this);
-
             PatchGame();
             RegisterHotkeys();
             SetConfigDefaults();
+
+            VolumetricLighting = new VolumetricLighting(this);
+            ScreenSpaceReflections = new ScreenSpaceReflections(this);
+            OverexposureEffect = new OverexposureEffect(this);
+            ScreenSpaceDirectionalOcclusion = new ScreenSpaceDirectionalOcclusion(this);
+            ShadowTweaks = new ShadowTweaks(this);
+        }
+
+        public override void StartPre(ICoreAPI api)
+        {
+            if (api is ICoreClientAPI)
+            {
+                Instance = this;
+                capi = (ICoreClientAPI)api;
+                Events = new Events();
+
+                ShaderInjector = new ShaderInjector();
+            }
         }
 
         private void RegisterHotkeys()
@@ -56,22 +72,22 @@ namespace VolumetricShading
                 Mod.Logger.Event("Patched " + method.FullDescription());
             }
         }
-        
+
         private static void SetConfigDefaults()
         {
             if (ModSettings.VolumetricLightingFlatness == 0)
             {
-                ModSettings.VolumetricLightingFlatness = 145;
+                ModSettings.VolumetricLightingFlatness = 155;
             }
 
             if (ModSettings.VolumetricLightingIntensity == 0)
             {
-                ModSettings.VolumetricLightingIntensity = 35;
+                ModSettings.VolumetricLightingIntensity = 45;
             }
 
             if (!ModSettings.SSRWaterTransparencySet)
             {
-                ModSettings.SSRWaterTransparency = 50;
+                ModSettings.SSRWaterTransparency = 25;
             }
 
             if (ModSettings.SSRReflectionDimming == 0)
@@ -81,12 +97,32 @@ namespace VolumetricShading
 
             if (!ModSettings.SSRTintInfluenceSet)
             {
-                ModSettings.SSRTintInfluence = 50;
+                ModSettings.SSRTintInfluence = 35;
             }
 
             if (!ModSettings.SSRSkyMixinSet)
             {
                 ModSettings.SSRSkyMixin = 15;
+            }
+
+            if (!ModSettings.SSRSplashTransparencySet)
+            {
+                ModSettings.SSRSplashTransparency = 65;
+            }
+
+            if (ModSettings.NearShadowBaseWidth == 0)
+            {
+                ModSettings.NearShadowBaseWidth = 15;
+            }
+
+            if (!ModSettings.NearPeterPanningAdjustmentSet)
+            {
+                ModSettings.NearPeterPanningAdjustment = 2;
+            }
+
+            if (!ModSettings.FarPeterPanningAdjustmentSet)
+            {
+                ModSettings.FarPeterPanningAdjustment = 5;
             }
         }
 
@@ -110,7 +146,7 @@ namespace VolumetricShading
         public override void Dispose()
         {
             if (capi == null) return;
-            
+
             _harmony?.UnpatchAll();
 
             Instance = null;

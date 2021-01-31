@@ -1,4 +1,4 @@
-#ifndef DYNLIGHTS
+﻿#ifndef DYNLIGHTS
     #define DYNLIGHTS 0
 #endif
 #if SHADOWQUALITY > 0

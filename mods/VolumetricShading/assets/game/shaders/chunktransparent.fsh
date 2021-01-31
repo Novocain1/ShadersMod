@@ -1,7 +1,8 @@
-#version 330 core
+﻿#version 330 core
 #extension GL_ARB_explicit_attrib_location: enable
 
 uniform sampler2D terrainTex;
+uniform float fogDensityIn;
 
 in vec4 rgba;
 in vec4 rgbaFog;
@@ -35,9 +36,8 @@ void drawPixel(vec4 color) {
     // R32F texture (revealage)
     // Make sure to use the red channel (and GL_RED target in your texture)
     outReveal.r = color.a;
-	float findBright = clamp(max(color.r, max(color.g, color.b)), 0, 0.25) - fogAmount;
 
-    outGlow = vec4(glowLevel + findBright, scatterAmt, 0, color.a);
+    outGlow = vec4(glowLevel, scatterAmt, 0, color.a);
 }
 
 
@@ -49,7 +49,19 @@ void main()
 
 	vec4 texColor = texture(terrainTex, uv) * rgba * getColorMapping(terrainTex);
 
-	texColor = applyFogAndShadowWithNormal(texColor, fogAmount, normal, normalShadeIntensity, 0.45);
+	texColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, normalShadeIntensity, 0.45, worldPos.xyz, fogDensityIn);
+
+#if SHINYEFFECT > 0 && VSMOD_SSR == 0
+	// Shiny bit flag
+	if (((renderFlags >> 5) & 1) > 0) {
+		vec3 worldVec = normalize(worldPos.xyz);
+	
+		float angle = 2 * dot(normalize(normal), worldVec);
+		angle += gnoise(vec3(uv.x*500, uv.y*500, worldVec.z/10)) / 7.5;
+		texColor.a = clamp(texColor.a + gnoise(vec3(2 * (worldVec.x/10 + angle), 2 * (worldVec.y/10 + angle), 2 * (worldVec.z/10 + angle)))/2, texColor.a/2, 1);
+		texColor.rgb *= max(vec3(1), vec3(1) + 3*blockLight * gnoise(vec3(worldVec.x/10 + angle, worldVec.y/10 + angle, worldVec.z/10 + angle))/2);
+	}
+#endif	
 
 	drawPixel(texColor);
 }

@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 #extension GL_ARB_explicit_attrib_location: enable
 
 in vec2 uv;
@@ -17,6 +17,8 @@ layout(location = 2) out vec4 outGNormal;
 layout(location = 3) out vec4 outGPosition;
 #endif
 
+
+uniform float fogDensityIn;
 
 uniform sampler2D entityTex;
 uniform float alphaTest = 0.001;
@@ -39,7 +41,7 @@ void main () {
 	float intensity = 0.45;
 	#endif
 
-	outColor = applyFogAndShadowWithNormal(texColor, fogAmount, normal, 1, intensity); // was 0.35. Made it match whats in chunkopaque.fsh so animated blocks don't change brightness
+	outColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, 1, intensity, vertexPosition, fogDensityIn); // was 0.35. Made it match whats in chunkopaque.fsh so animated blocks don't change brightness
 
 	//outColor.r = normal.x;
 	//outColor.g = normal.y;
@@ -67,7 +69,6 @@ void main () {
 	outGPosition = vec4(fragPosition.xyz, fogAmount + glowLevel + scatterAmt * VOLUMETRIC_SSAO_DECLINE);
 	outGNormal = vec4(gnormal.xyz, 0);
 #endif
-	float findBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0, 0.25) - fogAmount;
 
-	outGlow = vec4(glowLevel + glow + findBright, scatterAmt, 0, color.a);
+	outGlow = vec4(glowLevel + glow, scatterAmt, 0, color.a);
 }

@@ -75,6 +75,7 @@ vec4 WaterNormal(vec2 vec)
     {
         vec.x += windWaveCounter / 16.0;
 	}
+    else vec.x += waterWaveCounter / 32.0;
 
     vec4 sample1 = texture(water1, vec);
     vec4 sample2 = texture(water2, vec);
@@ -167,7 +168,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     float div = ((waterFlags & (1<<27)) > 0) ? 90 : 20;
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
 
-    div = skyExposed ? div / clamp(windIntensity, 0.05, 0.9) : div;
+    div = skyExposed ? div / clamp(windIntensity, 0.1, 1.0) : div;
 
     vec4 water = WaterNormal(uv * size / 32);
     float foam = water.a;
@@ -175,7 +176,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     vec3 nmNoise = water.rgb / div; //noise1 + noise2 + noise3;
     mul = foam;
     
-    normalMap = isLava ? vec3(1) : nmNoise;
+    normalMap = isLava ? vec3(0) : abs(nmNoise * 2.0);
     
     outTint = vec4(getColorMapping(terrainTex).rgb, mul);
     outTint.rgb += nmNoise.y * div + foam * div;
@@ -191,24 +192,30 @@ void TopsoilPass(inout vec3 normalMap, inout float mul)
 
 void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
 {
+    mat3 tbn = transpose(CotangentFrame(worldNormal, worldPos.xyz, uv));
+    mat3 invTbn = transpose(tbn);
+    vec3 viewTangent = normalize(invTbn * worldPos.xyz);
+
     if (shiny)
     {
         vec4 imp = texture(imperfect, uv * size / 512);
+
         normalMap = imp.xyz / 8;
     }
 
     vec4 color = texture(terrainTex, uv);
+    if (color.a < 0.005) discard;
+    
     mul = color.a < 0.01 ? 1.0 : mul;
 
-    mat3 tbn = transpose(CotangentFrame(worldNormal, worldPos.xyz, uv));
     vec3 worldNormalMap = tbn * normalMap;
     vec3 camNormalMap = (modelViewMatrix * vec4(worldNormalMap, 0.0)).xyz;
 
 	outGPosition = vec4(worldPos, mul);
 	outGNormal = vec4(normalize(camNormalMap + gnormal.xyz), mul);
     
-    outLight = color.a < 0.01 ? vec4(vec3(1), 1) : rgba;
-    if (renderPass == 4) outLight.a -= color.a;
+    outLight = rgba;
+    if (renderPass == 4) outLight -= color.a;
 
     if (!skipTint) outTint = vec4(getColorMapping(terrainTex).rgb, mul);
 }

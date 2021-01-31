@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 #extension GL_ARB_explicit_attrib_location: enable
 
 uniform sampler2D terrainTex;
@@ -55,7 +55,7 @@ void main()
 	float intensity = 0.45;
 	#endif
 
-	outColor = applyFogAndShadowWithNormal(texColor, fogAmount, normal, 1, intensity);
+	outColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, 1, intensity, vertexPosition, fogDensityIn);
 	
 	float glow = 0;
 	
@@ -79,6 +79,20 @@ void main()
 	
 	aTest += max(0, 1 - rgba.a) * min(1, outColor.a * 10);
 	if (aTest < alphaTest) discard;
+	
+
+#if SHINYEFFECT > 0 && VSMOD_SSR == 0
+	// Shiny bit flag
+	if (((renderFlags >> 5) & 1) > 0) {
+		vec3 worldVec = normalize(vertexPosition.xyz);
+	
+		float angle = 2 * dot(normalize(normal), worldVec);
+		angle += gnoise(vec3(uv.x*500, uv.y*500, worldVec.z/10)) / 7.5;		
+		outColor.rgb *= max(vec3(1), vec3(1) + 3*blockLight * gnoise(vec3(worldVec.x/10 + angle, worldVec.y/10 + angle, worldVec.z/10 + angle)));
+	}
+	
+	glow = pow(max(0, dot(normal, lightPosition)), 6) / 8 * shadowIntensity * (1 - fogAmount);
+#endif
 
 	float scatterAmt = calculateVolumetricScatter(vertexPosition);
 
@@ -87,9 +101,7 @@ void main()
 	outGNormal = gnormal;
 #endif
 
-	float findBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0, 0.25) - fogAmount;
-
 	//outColor = vec4((normal.x + 0.5) / 2, (normal.y + 0.5)/2, (normal.z+0.5)/2, 1);
-	outGlow = vec4(glowLevel + glow + findBright, scatterAmt, 0, outColor.a);
+	outGlow = vec4(glowLevel + glow, scatterAmt, 0, outColor.a);
 	//outColor=vec4(1);
 }

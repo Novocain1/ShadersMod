@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 #extension GL_ARB_explicit_attrib_location: enable
 
 in vec4 rgbaCloud;
@@ -37,11 +37,10 @@ void drawPixel(vec4 color, float glow) {
 	float normalOut = 0.1f;
 	float intensity = dot(normalize(shadowCoordsFar.xyz-shadowRayStart.xyz),  normalize(shadowLightPos.xyz-shadowRayStart.xyz));
 	float phase = 2.5+exp(intensity*3.0)/3.0;
-	actOut = pow(phase * normalOut, VOLUMETRIC_FLATNESS) * (1.0f - color.a * 0.4f);
+	actOut = pow(phase * normalOut, VOLUMETRIC_FLATNESS) * (1.0f - color.a * 0.6f);
 #endif
-	float findBright = clamp(max(color.r, max(color.g, color.b)), 0, 0.25) - fogAmountf;
-
-	outGlow = vec4(glow + findBright, actOut, 0, min(1, color.a*5 - (flagsf >= 5 ? thinCloudModef : 0)));
+	
+	outGlow = vec4(glow, actOut, 0, min(1, color.a*5 - (flagsf >= 5 ? thinCloudModef : 0)));
 }
 
 void main()

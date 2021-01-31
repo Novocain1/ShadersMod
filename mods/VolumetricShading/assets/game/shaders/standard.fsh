@@ -14,6 +14,8 @@ uniform sampler2D tex;
 uniform float extraGodray = 0;
 uniform float alphaTest = 0.001;
 uniform float ssaoAttn = 0;
+uniform float extraOutGlow = 0;
+uniform float fogDensityIn;
 
 
 // Texture overlay "hack"
@@ -34,6 +36,7 @@ in float glowLevel;
 in vec4 rgbaGlow;
 flat in int renderFlags;
 in vec3 normal;
+in vec4 vertexPosition;
 
 
 
@@ -72,22 +75,22 @@ void main () {
 //	outColor.rgb += rgbaGlow.rgb * min(0.8, glowLevel * rgbaGlow.a);
 	//outColor.rgb = rgbaGlow.rgb;
 	
-	outColor = applyFogAndShadow(outColor, fogAmount);
+	outColor = applyOverexposedFogAndShadowFlat(outColor, fogAmount, normal, vertexPosition.xyz, fogDensityIn);
 	//outColor=vec4(1,0,0,1);
 	
 	if (outColor.a < alphaTest) discard;
 	
 	
 	float glow = 0;
-#if SHINYEFFECT > 0	
+#if SHINYEFFECT > 0	&& VSMOD_SSR == 0
 	glow = pow(max(0, dot(normal, lightPosition)), 6) / 8 * shadowIntensity * (1 - fogAmount);
 #endif
+	glow += extraOutGlow;
 
 #if SSAOLEVEL > 0
 	outGPosition = vec4(fragPosition.xyz, fogAmount + glowLevel);
 	outGNormal = vec4(gnormal.xyz, ssaoAttn);
 #endif
-	float findBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0, 0.25) - fogAmount;
 
-	outGlow = vec4(glowLevel + glow + findBright, extraGodray - fogAmount, 0, outColor.a);
+	outGlow = vec4(glowLevel + glow, extraGodray - fogAmount, 0, outColor.a);
 }

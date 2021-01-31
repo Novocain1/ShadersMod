@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 
 uniform sampler2D terrainTex;
 uniform sampler2D depthTex;
@@ -24,6 +24,7 @@ flat in vec2 uvBase;
 in vec3 fragWorldPos;
 in vec3 fWorldPos;
 in vec3 fragNormal;
+flat in int skyExposed;
 
 
 in vec2 flowVectorf;
@@ -31,7 +32,6 @@ in float glowLevel;
 
 flat in int waterFlags;
 flat in int renderFoam;
-flat in int skyExposed;
 
 layout(location = 0) out vec4 outAccu;
 layout(location = 1) out vec4 outReveal;
@@ -40,6 +40,8 @@ layout(location = 2) out vec4 outGlow;
 #include fogandlight.fsh
 #include noise3d.ash
 #include colormap.fsh
+
+
 
 vec2 droplethash3( vec2 p )
 {
@@ -76,6 +78,10 @@ float dropletnoise(in vec2 x)
     return va;
 }
 
+
+
+
+
 void drawPixel(vec4 color) {
 	float weight = color.a * clamp(0.03 / (1e-5 + pow(gl_FragCoord.z / 200, 4.0)), 1e-2, 3e3);
 	
@@ -87,9 +93,8 @@ void drawPixel(vec4 color) {
     outReveal.r = color.a; // Was *1.2 but that made lava more transparent :o
 	
 	float scatterAmt = calculateVolumetricScatter(fWorldPos);
-	float findBright = clamp(max(color.r, max(color.g, color.b)), 0, 0.25) - fogAmount;
-
-    outGlow = vec4(glowLevel + findBright, scatterAmt, 0, color.a);
+	
+    outGlow = vec4(glowLevel, scatterAmt, 0, color.a);
 }
 
 void main() 
@@ -171,7 +176,6 @@ void main()
 		} else {
 			// Cold liquids
 			
-			
 			// Foam
 			float intensity = clamp(dot(fragNormal, vec3(0, 1, 0)), 0, 1);
 			float a = fragWorldPos.x + fragWorldPos.y - 1.5 * flowVectorf.x * waterFlowCounter;
@@ -190,47 +194,21 @@ void main()
 			}
 			
 			texColor.a += max(0, diff/16 + noise/4);
+#if VSMOD_SSR > 0
+			texColor.a *= VSMOD_SSR_WATER_TRANSPARENCY;
+#endif
 			
 			// Droplet noise
 			float f = 0;
 			if (skyExposed > 0) {
-				vec2 uv = 12.0 * fragWorldPos.xz / (2.0 + noise1/3000.0);
+				vec2 uv = 12.0 * fragWorldPos.xz / (2.0 + noise1/5000.0 + noise/600.0);
 				f = dropletnoise(uv);
+#if VSMOD_SSR > 0
+				f *= VSMOD_SSR_SPLASH_TRANSPARENCY;
+#endif
 			}
-			
-			texColor.rgb;// *= 1 + f;
 
-			/*
-			// Specular reflection
-			vec3 noisepos = vec3(fragWorldPos.x / 3 - windWaveCounter / 3, fragWorldPos.z / 3, waterWaveCounter / 12 + windWaveCounter / 6) * 0.5;
-			
-			//float dy = clamp(noise2 / 10, 0, 1) + gnoise(noisepos); - trippy specular rings
-			
-			float dy = noise2 / 20 + clamp(gnoise(noisepos) / 10, 0, 0.6);
-			
-			vec3 normal = normalize(vec3(dy, 1, -dy));
-			
-			float upness = max(0, dot(fragNormal, vec3(0,1,0))); // Only do specular reflections on up faces
-			
-			vec3 eye = normalize(vec3(fWorldPos.x, fWorldPos.y - 2, fWorldPos.z));
-			vec3 reflectionVec = reflect(sunPosRel, normal);
-			float p = dot(reflectionVec, eye);
-			if (p > 0) {
-				float sunb = clamp(sunPosRel.y * 10, 0, 1) * clamp(1.5 - sunPosRel.y, 0, 1) * sunSpecularIntensity;
-				
-				float specular = pow(p, 200) * sunb;
-				
-				#if SHADOWQUALITY > 0
-				float weight = upness * clamp(specular * clamp(pow(shadowBright, 4), 0, 1) * clamp(1.5 * shadowIntensity, 0, 1), 0, 1);
-				#else
-				float weight = upness * clamp(specular * clamp(pow(shadowBright, 4), 0, 1) * clamp(1.5, 0, 1), 0, 1);
-				#endif
-				
-				vec3 sunColf = applyFog(vec4(sunColor, 1), fogAmount).rgb;
-				
-				texColor.rgb = mix(texColor.rgb, sunColf + noise1 * 0.2, weight);
-				texColor.a = mix(texColor.a, texColor.a + specular/2, weight);
-			}*/
+			texColor.rgb *= 1 + f;
 		}
 	}
 	

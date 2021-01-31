@@ -1,18 +1,36 @@
 ﻿using System.Reflection;
 using Vintagestory.Client.NoObf;
 
-namespace VolumetricShading
+namespace Shaders
 {
     public class VolumetricLighting
     {
-        private readonly VolumetricShadingMod _mod;
+        private readonly ShadersMod mod;
 
-        public VolumetricLighting(VolumetricShadingMod mod)
+        public VolumetricLighting(ShadersMod mod)
         {
-            _mod = mod;
-            
-            _mod.capi.Settings.AddWatcher<int>("shadowMapQuality", OnShadowMapChanged);
-            _mod.capi.Settings.AddWatcher<int>("godRays", OnGodRaysChanged);
+            this.mod = mod;
+
+            this.mod.capi.Settings.AddWatcher<int>("shadowMapQuality", OnShadowMapChanged);
+            this.mod.capi.Settings.AddWatcher<int>("godRays", this.OnGodRaysChanged);
+
+            this.mod.Events.PreGodraysRender += OnSetGodrayUniforms;
+
+            RegisterInjectorProperties();
+        }
+
+        private void RegisterInjectorProperties()
+        {
+            var injector = mod.ShaderInjector;
+
+            injector.RegisterFloatProperty("VOLUMETRIC_FLATNESS", () =>
+            {
+                var volFlatnessInt = ModSettings.VolumetricLightingFlatness;
+                return (200 - volFlatnessInt) * 0.01f;
+            });
+
+            injector.RegisterFloatProperty("VOLUMETRIC_INTENSITY",
+                () => ModSettings.VolumetricLightingIntensity * 0.01f);
         }
 
         private static void OnShadowMapChanged(int quality)
@@ -27,32 +45,33 @@ namespace VolumetricShading
         private void OnGodRaysChanged(int quality)
         {
             if (quality != 1 || ClientSettings.ShadowMapQuality != 0) return;
-            
+
             // turn on shadow mapping
             ClientSettings.ShadowMapQuality = 1;
-            _mod.capi.GetClientPlatformAbstract().RebuildFrameBuffers();
+            mod.capi.GetClientPlatformAbstract().RebuildFrameBuffers();
         }
-        
+
         public void OnSetGodrayUniforms(ShaderProgramGodrays rays)
         {
             // custom uniform calls
-            var calendar = _mod.capi.World.Calendar;
+            var calendar = mod.capi.World.Calendar;
             var dropShadowIntensityObj = typeof(AmbientManager)
                 .GetField("DropShadowIntensity", BindingFlags.NonPublic | BindingFlags.Instance)?
-                .GetValue(_mod.capi.Ambient);
+                .GetValue(mod.capi.Ambient);
 
             if (dropShadowIntensityObj == null)
             {
-                _mod.Mod.Logger.Fatal("DropShadowIntensity not found!");
+                mod.Mod.Logger.Fatal("DropShadowIntensity not found!");
                 return;
             }
 
             var dropShadowIntensity = (float) dropShadowIntensityObj;
-            
+
             rays.Uniform("moonLightStrength", calendar.MoonLightStrength);
             rays.Uniform("sunLightStrength", calendar.SunLightStrength);
             rays.Uniform("dayLightStrength", calendar.DayLightStrength);
             rays.Uniform("shadowIntensity", dropShadowIntensity);
+            rays.Uniform("flatFogDensity", mod.capi.Ambient.BlendedFlatFogDensity);
         }
     }
 }

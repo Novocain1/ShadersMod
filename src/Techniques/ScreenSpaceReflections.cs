@@ -8,11 +8,11 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
 
-namespace VolumetricShading
+namespace Shaders
 {
     public class ScreenSpaceReflections : IRenderer
     {
-        private readonly VolumetricShadingMod mod;
+        private readonly ShadersMod mod;
         
         private bool Enabled { get => ModSettings.ScreenSpaceReflectionsEnabled; set => ModSettings.ScreenSpaceReflectionsEnabled = value; }
         
@@ -34,9 +34,11 @@ namespace VolumetricShading
 
         int[] waterTextures = new int[4];
         
-        public ScreenSpaceReflections(VolumetricShadingMod mod)
+        public ScreenSpaceReflections(ShadersMod mod)
         {
             this.mod = mod;
+
+            RegisterInjectorProperties();
 
             game = mod.capi.GetClient();
             platform = game.GetClientPlatformWindows();
@@ -48,13 +50,35 @@ namespace VolumetricShading
 
             mod.capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssr");
             mod.capi.Event.RegisterRenderer(this, EnumRenderStage.AfterPostProcessing, "ssrOut");
-            
+
+            mod.Events.RebuildFramebuffers += SetupFramebuffers;
             SetupFramebuffers(platform.FrameBuffers);
 
             waterTextures[0] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/1.png"));
             waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/2.png"));
             waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/water/3.png"));
             waterTextures[3] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("volumetricshading:textures/environment/imperfect.png"));
+        }
+
+        private void RegisterInjectorProperties()
+        {
+            var injector = mod.ShaderInjector;
+            injector.RegisterBoolProperty("VSMOD_SSR", () => ModSettings.ScreenSpaceReflectionsEnabled);
+
+            injector.RegisterFloatProperty("VSMOD_SSR_WATER_TRANSPARENCY",
+                () => (100 - ModSettings.SSRWaterTransparency) * 0.01f);
+
+            injector.RegisterFloatProperty("VSMOD_SSR_SPLASH_TRANSPARENCY",
+                () => (100 - ModSettings.SSRSplashTransparency) * 0.01f);
+
+            injector.RegisterFloatProperty("VSMOD_SSR_REFLECTION_DIMMING",
+                () => ModSettings.SSRReflectionDimming * 0.01f);
+
+            injector.RegisterFloatProperty("VSMOD_SSR_TINT_INFLUENCE",
+                () => ModSettings.SSRTintInfluence * 0.01f);
+
+            injector.RegisterFloatProperty("VSMOD_SSR_SKY_MIXIN",
+                () => ModSettings.SSRSkyMixin * 0.01f);
         }
 
         private void OnEnabledChanged(bool enabled)
@@ -76,13 +100,13 @@ namespace VolumetricShading
                 shader.AssetDomain = mod.Mod.Info.ModID;
                 mod.capi.Shader.RegisterFileShaderProgram("ssr", shader);
                 success &= shader.Compile();
-                
+
                 ssrShaderByRenderPass[i] = shader;
             }
 
             ssrOutShader?.Dispose();
 
-            shader = (ShaderProgram) mod.capi.Shader.NewShaderProgram();
+            shader = (ShaderProgram)mod.capi.Shader.NewShaderProgram();
             shader.AssetDomain = mod.Mod.Info.ModID;
             mod.capi.Shader.RegisterFileShaderProgram("ssrout", shader);
             success &= shader.Compile();
@@ -170,7 +194,8 @@ namespace VolumetricShading
                 FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight
             };
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssrOutFramebuffer.FboId);
-            ssrOutFramebuffer.ColorTextureIds = new[] {GL.GenTexture(), GL.GenTexture() };
+            ssrOutFramebuffer.ColorTextureIds = new[] { GL.GenTexture() };
+            
             for (int i = 0; i < ssrOutFramebuffer.ColorTextureIds.Length; i++)
             {
                 GL.BindTexture(TextureTarget.Texture2D, ssrOutFramebuffer.ColorTextureIds[i]);
@@ -182,7 +207,7 @@ namespace VolumetricShading
                 GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, ssrOutFramebuffer.ColorTextureIds[i], 0);
             }
 
-            GL.DrawBuffers(2, new[] { DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1});
+            GL.DrawBuffers(1, new[] { DrawBuffersEnum.ColorAttachment0 });
 
             CheckFbStatus();
 
@@ -338,7 +363,6 @@ namespace VolumetricShading
             if (ssrOutFramebuffer == null) return;
             
             final.BindTexture2D("ssrScene", ssrOutFramebuffer.ColorTextureIds[0]);
-            final.BindTexture2D("ssrGlow", ssrOutFramebuffer.ColorTextureIds[1]);
         }
 
         public void Dispose()

@@ -1,4 +1,4 @@
-uniform float flatFogDensity;
+﻿uniform float flatFogDensity;
 uniform float flatFogStart;
 uniform float viewDistance;
 uniform float viewDistanceLod0;
@@ -38,66 +38,20 @@ vec4 applyFog(vec4 rgbaPixel, float fogWeight) {
 	return vec4(mix(rgbaPixel.rgb, rgbaFog.rgb, fogWeight), rgbaPixel.a);
 }
 
-#if POISSON_SHADOWS > 0
-vec2 poissonDisk[16] = vec2[]( 
-   vec2( -0.94201624, -0.39906216 ), 
-   vec2( 0.94558609, -0.76890725 ), 
-   vec2( -0.094184101, -0.92938870 ), 
-   vec2( 0.34495938, 0.29387760 ), 
-   vec2( -0.91588581, 0.45771432 ), 
-   vec2( -0.81544232, -0.87912464 ), 
-   vec2( -0.38277543, 0.27676845 ), 
-   vec2( 0.97484398, 0.75648379 ), 
-   vec2( 0.44323325, -0.97511554 ), 
-   vec2( 0.53742981, -0.47373420 ), 
-   vec2( -0.26496911, -0.41893023 ), 
-   vec2( 0.79197514, 0.19090188 ), 
-   vec2( -0.24188840, 0.99706507 ), 
-   vec2( -0.81409955, 0.91437590 ), 
-   vec2( 0.19984126, 0.78641367 ), 
-   vec2( 0.14383161, -0.14100790 ) 
-);
-
-float random(vec3 seed, int i){
-	vec4 seed4 = vec4(seed,i);
-	float dot_product = dot(seed4, vec4(12.9898,78.233,45.164,94.673));
-	return fract(sin(dot_product) * 43758.5453);
-}
-
-const float poissonSpread = 3200.0;
-#endif
-
 float getBrightnessFromShadowMap() {
 	#if SHADOWQUALITY > 0
-	#if POISSON_SHADOWS > 0
-	const float divFactor = 4.0;
-	#else
-	const float divFactor = 9.0;
-	#endif
 
 	float totalFar = 0.0;
 	if (shadowCoordsFar.z < 0.999 && shadowCoordsFar.w > 0) {
-		#if POISSON_SHADOWS == 0
-
 		for (int x = -1; x <= 1; x++) {
 			for (int y = -1; y <= 1; y++) {
-				float inlight = texture (shadowMapFar, vec3(shadowCoordsFar.xy + vec2(x * shadowMapWidthInv, y * shadowMapHeightInv), shadowCoordsFar.z - 0.0009));
+				float inlight = texture (shadowMapFar, vec3(shadowCoordsFar.xy + vec2(x * shadowMapWidthInv, y * shadowMapHeightInv), shadowCoordsFar.z - 0.0009 + (0.0001 * VSMOD_FARSHADOWOFFSET)));
 				totalFar += 1 - inlight;
 			}
 		}
-		
-		#else
-
-		for (int i = 0; i < 4; ++i) {
-			int index = i;
-			float inlight = texture(shadowMapFar, vec3(shadowCoordsFar.xy + poissonDisk[index]/poissonSpread, shadowCoordsFar.z - 0.0009));
-			totalFar += 1 - inlight;
-		}
-
-		#endif
 	}
 
-	totalFar /= divFactor;
+	totalFar /= 9.0f;
 
 	
 	float b = 1.0 - shadowIntensity * totalFar * shadowCoordsFar.w * 0.5;
@@ -107,27 +61,15 @@ float getBrightnessFromShadowMap() {
 	#if SHADOWQUALITY > 1
 	float totalNear = 0.0;
 	if (shadowCoordsNear.z < 0.999 && shadowCoordsNear.w > 0) {
-		#if POISSON_SHADOWS == 0
-
 		for (int x = -1; x <= 1; x++) {
 			for (int y = -1; y <= 1; y++) {
-				float inlight = texture (shadowMapNear, vec3(shadowCoordsNear.xy + vec2(x * shadowMapWidthInv, y * shadowMapHeightInv), shadowCoordsNear.z - 0.0005));
+				float inlight = texture (shadowMapNear, vec3(shadowCoordsNear.xy + vec2(x * shadowMapWidthInv, y * shadowMapHeightInv), shadowCoordsNear.z - 0.0005 + (0.0001 * VSMOD_NEARSHADOWOFFSET)));
 				totalNear += 1 - inlight;
 			}
 		}
-
-		#else
-
-		for (int i = 0; i < 4; ++i) {
-			int index = i;
-			float inlight = texture(shadowMapNear, vec3(shadowCoordsNear.xy + poissonDisk[index]/poissonSpread, shadowCoordsNear.z - 0.0005));
-			totalNear += 1 - inlight;
-		}
-
-		#endif
 	}
 	
-	totalNear /= divFactor;
+	totalNear /= 9.0f;
 
 	
 	b -=  shadowIntensity * totalNear * shadowCoordsNear.w * 0.5;
@@ -149,7 +91,11 @@ float getBrightnessFromNormal(vec3 normal, float normalShadeIntensity, float min
 	
 	// Let's also define that diffuse light from the sky provides an additional brightness boost for up facing stuff
 	// because the top side of blocks being darker than the sides is uncanny o__O
-	nb = max(nb, dot(normalize(normal), vec3(0, 1, 0)) * 0.6);
+	float factor = 0.95f;
+	
+	factor = clamp(factor - 0.35f * VSMOD_OVEREXPOSURE, 0f, 1f);
+	
+	nb = max(nb, dot(normalize(normal), vec3(0, 1, 0)) * factor);
 	
 	return mix(1, nb, normalShadeIntensity);
 }
@@ -170,7 +116,52 @@ vec4 applyFogAndShadowWithNormal(vec4 rgbaPixel, float fogWeight, vec3 normal, f
 	b = min(b, nb);
 	rgbaPixel *= vec4(b, b, b, 1);
 	
+	return applyFog(rgbaPixel, fogWeight);
+}
+
+void applyOverexposure(inout vec4 rgbaPixel, float b, vec3 normal, vec3 worldPos, float fogDensity) {
+#if VSMOD_OVEREXPOSURE_ENABLED > 0
+	float dot = dot(normal, lightPosition);
+	float orientation = dot > 0.05 ? 0.5 + 0.5 * dot : 0.5 * (clamp(dot - 0.025, 0, 0.025) / 0.025);
+
+	float fDensity = max(fogDensity, flatFogDensity);
+	if (fDensity < 0.01) {
+		float densityModifier = clamp((0.01 - fDensity) * 100, 0, 1);
+		float sunHeight = pow(min(max(lightPosition.y*2.5f, 0.0f), 1f), 1f);
+		float playerDistance = length(worldPos);
+		float distScaling = clamp((300 - playerDistance) / 300, 0, 1);
+
+		float exposure = pow(b, 2) * (0.25 + 0.75 * orientation) * VSMOD_OVEREXPOSURE * sunHeight * distScaling * densityModifier;
+
+		vec3 additional = rgbaPixel.rgb * vec3(1.2, 1.0, 0.7) * exposure;
+		rgbaPixel.rgb += additional;
+		//rgbaPixel.rgb = vec3(1.0f) - exp(-rgbaPixel.rgb * 1.3);
+		rgbaPixel.rgb = min(vec3(1), rgbaPixel.rgb);
+	}
+#endif
+}
+
+vec4 applyOverexposedFogAndShadowFlat(vec4 rgbaPixel, float fogWeight, vec3 normal, vec3 worldPos, float fogDensity) {
+	float b = getBrightnessFromShadowMap();
+	rgbaPixel *= vec4(b, b, b, 1);
+	
+	applyOverexposure(rgbaPixel, b, normal, worldPos, fogDensity);
+
 	return applyFog(rgbaPixel, fogWeight*1);
+}
+
+vec4 applyOverexposedFogAndShadow(vec4 rgbaPixel, float fogWeight, vec3 normal, float normalShadeIntensity,
+	float minNormalShade, vec3 worldPos, float fogDensity) {
+
+	float b = getBrightnessFromShadowMap();
+	float nb = getBrightnessFromNormal(normal, normalShadeIntensity, minNormalShade);
+
+	float outB = min(b, nb);
+	rgbaPixel *= vec4(outB, outB, outB, 1);
+	
+	applyOverexposure(rgbaPixel, b, normal, worldPos, fogDensity);
+
+	return applyFog(rgbaPixel, fogWeight);
 }
 
 float getFogLevel(float fogMin, float fogDensity, float worldPosY) {
@@ -201,7 +192,7 @@ float calculateVolumetricScatter(vec3 position) {
 	float dither = fract(0.75487765 * gl_FragCoord.x + 0.56984026 * gl_FragCoord.y);
 	//float dither = 0;
 
-	int maxSamples = 6;
+	const int maxSamples = 6;
 	
 	vec3 dV = (shadowCoordsFar.xyz-shadowRayStart.xyz)/maxSamples;
 	//vec4 shadowLightPosition = shadowMatrix * vec4(lightPosition, 1.0);

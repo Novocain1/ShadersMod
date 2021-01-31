@@ -3,7 +3,7 @@ using System.Reflection;
 using Vintagestory.API.Client;
 using Vintagestory.Client.NoObf;
 
-namespace VolumetricShading
+namespace Shaders
 {
     public static class ReflectionHelper
     {

@@ -58,18 +58,25 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="mysrc\AdvancedOptionsDialog.cs" />
-    <Compile Include="mysrc\ConfigGui.cs" />
-    <Compile Include="mysrc\HackMan.cs" />
-    <Compile Include="mysrc\HarmonyPatches.cs" />
-    <Compile Include="mysrc\ModSettings.cs" />
-    <Compile Include="mysrc\ReflectionHelper.cs" />
-    <Compile Include="mysrc\ScreenSpaceReflections.cs" />
-    <Compile Include="mysrc\ScreenSpaceReflectionsGui.cs" />
-    <Compile Include="mysrc\ShaderInjector.cs" />
-    <Compile Include="mysrc\VolumetricLighting.cs" />
-    <Compile Include="mysrc\VolumetricLightingGui.cs" />
-    <Compile Include="mysrc\VolumetricShadingMod.cs" />
+    <Compile Include="src\Dialog\Abstract\AdvancedOptionsDialog.cs" />
+    <Compile Include="src\Dialog\Config\ConfigGui.cs" />
+    <Compile Include="src\Techniques\ScreenSpaceDirectionalOcclusion.cs" />
+    <Compile Include="src\Util\Events.cs" />
+    <Compile Include="src\Util\HackMan.cs" />
+    <Compile Include="src\Util\HarmonyPatches.cs" />
+    <Compile Include="src\ModSettings.cs" />
+    <Compile Include="src\Techniques\OverexposureEffect.cs" />
+    <Compile Include="src\Dialog\Config\SubDialogs\OverexposureGui.cs" />
+    <Compile Include="src\Util\ReflectionHelper.cs" />
+    <Compile Include="src\Techniques\ScreenSpaceReflections.cs" />
+    <Compile Include="src\Dialog\Config\SubDialogs\ScreenSpaceReflectionsGui.cs" />
+    <Compile Include="src\Util\ShaderInjector.cs" />
+    <Compile Include="src\Util\ShaderProperty.cs" />
+    <Compile Include="src\Techniques\ShadowTweaks.cs" />
+    <Compile Include="src\Dialog\Config\SubDialogs\ShadowTweaksGui.cs" />
+    <Compile Include="src\Techniques\VolumetricLighting.cs" />
+    <Compile Include="src\Dialog\Config\SubDialogs\VolumetricLightingGui.cs" />
+    <Compile Include="src\ShadersMod.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".vs\VolumetricShading\DesignTimeBuild\.dtbcache.v2" />

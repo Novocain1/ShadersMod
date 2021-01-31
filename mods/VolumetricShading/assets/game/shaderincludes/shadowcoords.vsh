@@ -1,4 +1,4 @@
-#if SHADOWQUALITY > 0
+﻿#if SHADOWQUALITY > 0
 uniform float shadowRangeFar;
 uniform mat4 toShadowMapSpaceMatrixFar;
 out vec4 shadowCoordsFar;

@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 #extension GL_ARB_explicit_attrib_location: enable
 
 layout(location = 0) in vec3 vertexPositionIn;
@@ -9,6 +9,7 @@ layout(location = 2) in vec4 rgbaLightIn;
 // Bits 8-10: Z-Offset
 // Bit 11: Wind waving yes/no
 // Bit 12: Water waving yes/no
+// Bit 13: Exposed to sky
 layout(location = 3) in int renderFlags;
 
 layout(location = 4) in vec2 flowVector;
@@ -59,10 +60,10 @@ out float waterStillCounterOff;
 out vec3 fragWorldPos;
 out vec3 fragNormal;
 out vec3 fWorldPos;
+flat out int skyExposed;
 
 flat out vec2 uvBase;
 flat out int waterFlags;
-flat out int skyExposed;
 
 #include shadowcoords.vsh
 #include fogandlight.vsh
@@ -75,10 +76,10 @@ void main(void)
 	vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
 	
 	float div = ((waterFlagsIn & (1<<27)) > 0) ? 90 : 10;
-	float yBefore = worldPos.y;
-	skyExposed = (renderFlags >> 13) & 1;
 	
-	worldPos = applyLiquidWarping((waterFlagsIn & 0x2000000) == 0, worldPos, div);
+	if ((waterFlagsIn & 1) == 1) {
+		worldPos = applyLiquidWarping((waterFlagsIn & 0x2000000) == 0, worldPos, div);
+	}
 	
 	vec4 cameraPos = modelViewMatrix * worldPos;
 	
@@ -100,7 +101,7 @@ void main(void)
 	
 	uv = uvIn;
 	
-	float w= ((waterFlagsIn >> 8) & 0xff) / 255.0 * blockTextureSize.x;
+	float w = ((waterFlagsIn >> 8) & 0xff) / 255.0 * blockTextureSize.x;
 	float h = ((waterFlagsIn >> 16) & 0xff) / 255.0 * blockTextureSize.y;
 	uvSize = vec2(w, h);
 	uvBase = uv - uvSize;
@@ -109,6 +110,9 @@ void main(void)
 	
 	waterFlags = waterFlagsIn;
 	fragNormal = unpackNormal(renderFlags >> 15);
+	skyExposed = (renderFlags >> 13) & 1;
+	
+	
 	
 	vec3 eyeFresnel = normalize(vec3(worldPos.x, worldPos.y - 3.5, worldPos.z));
 	float bias = 0.01;
