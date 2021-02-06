@@ -136,33 +136,22 @@ namespace Shaders
             fbHeight = (int) (platform.window.Height * ClientSettings.SSAA);
             ssrFramebuffer = new FrameBufferRef
             {
-                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight, DepthTextureId = mainBuffers[(int)EnumFrameBuffer.Primary].DepthTextureId
+                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight, 
+                DepthTextureId = GL.GenTexture(),
+                ColorTextureIds = ArrayUtil.CreateFilled(4, _ => GL.GenTexture())
             };
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssrFramebuffer.FboId);
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D,
-                mainBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 0);
-
-            // create our normal and position textures
-            ssrFramebuffer.ColorTextureIds = ArrayUtil.CreateFilled(4, _ => GL.GenTexture());
-
+            
             // bind and setup textures
             ssrFramebuffer.SetupTextures(new[] { 0, 1 }, new[] { 2, 3 });
-
-            FrameBuffers.CheckStatus();
 
             // setup output framebuffer
             ssrOutFramebuffer = new FrameBufferRef
             {
-                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight
+                FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight,
+                ColorTextureIds = new[] { GL.GenTexture() }
             };
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssrOutFramebuffer.FboId);
-            ssrOutFramebuffer.ColorTextureIds = new[] { GL.GenTexture() };
-
-            ssrOutFramebuffer.SetupColorTexture(0);
-
-            GL.DrawBuffers(1, new[] { DrawBuffersEnum.ColorAttachment0 });
-
-            FrameBuffers.CheckStatus();
+            
+            ssrOutFramebuffer.SetupTextures(new int[0], new int[] { 0 }, false);
 
             screenQuad = platform.GetScreenQuad();
         }
@@ -172,7 +161,7 @@ namespace Shaders
             if (!Enabled) return;
             
             targetWindSpeed = (float)mod.capi.World.BlockAccessor.GetWindSpeedAt(game.EntityPlayer.Pos.XYZ).X;
-            curWindSpeed += (targetWindSpeed - curWindSpeed) * 0.01f;
+            curWindSpeed += (targetWindSpeed - curWindSpeed) * 0.001f;
 
             if (chunkRenderer == null)
             {
@@ -238,6 +227,13 @@ namespace Shaders
         private void OnRenderssr()
         {
             if (ssrFramebuffer == null) return;
+
+            // copy the depth buffer so we can work with it
+            var primaryBuffer = platform.FrameBuffers[(int)EnumFrameBuffer.Primary];
+            GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, primaryBuffer.FboId);
+            GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, ssrFramebuffer.FboId);
+            GL.Clear(ClearBufferMask.DepthBufferBit);
+            GL.BlitFramebuffer(0, 0, primaryBuffer.Width, primaryBuffer.Height, 0, 0, fbWidth, fbHeight, ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
 
             // bind our framebuffer
             platform.LoadFrameBuffer(ssrFramebuffer);

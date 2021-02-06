@@ -25,12 +25,18 @@ namespace Shaders
                 TextureTarget.Texture2D, fbRef.DepthTextureId, 0);
         }
 
-        public static void SetupTextures(this FrameBufferRef fbRef, int[] vIds, int[] cIds)
+        public static void SetupTextures(this FrameBufferRef fbRef, int[] vIds, int[] cIds, bool depth = true)
         {
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, fbRef.FboId);
+            
+            if (depth) fbRef.SetupDepthTexture();
             fbRef.SetupVertexTextures(vIds);
             fbRef.SetupColorTextures(cIds);
+            
             DrawBuffersEnum[] attachments = ArrayUtil.CreateFilled(vIds.Length + cIds.Length, i => DrawBuffersEnum.ColorAttachment0 + i);
             GL.DrawBuffers(attachments.Length, attachments);
+            
+            fbRef.CheckStatus();
         }
 
         public static void SetupVertexTextures(this FrameBufferRef fbRef, params int[] indices)
@@ -79,7 +85,9 @@ namespace Shaders
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + textureId,
                 TextureTarget.Texture2D, fbRef.ColorTextureIds[textureId], 0);
         }
-        
+
+        public static void CheckStatus(this FrameBufferRef fbRef) => CheckStatus();
+
         public static void CheckStatus()
         {
             var errorCode = GL.Ext.CheckFramebufferStatus(FramebufferTarget.Framebuffer);

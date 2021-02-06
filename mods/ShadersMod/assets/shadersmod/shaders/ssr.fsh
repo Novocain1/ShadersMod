@@ -170,7 +170,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
 
     div = skyExposed ? div / clamp(windIntensity, 0.1, 1.0) : div;
 
-    vec4 water = WaterNormal(uv * size / 32);
+    vec4 water = WaterNormal(uv * size / 64);
     float foam = water.a;
 
     vec3 nmNoise = water.rgb / div; //noise1 + noise2 + noise3;
