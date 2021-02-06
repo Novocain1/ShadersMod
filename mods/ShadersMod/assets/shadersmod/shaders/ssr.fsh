@@ -106,7 +106,7 @@ mat3 CotangentFrame(vec3 N, vec3 p, vec2 uv) {
     vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
 
     float invmax = inversesqrt(max(dot(T, T), dot(B, B)));
-    return transpose(mat3(T * invmax, B * invmax, N));
+    return mat3(T * invmax, B * invmax, N);
 }
 
 float GenSplashAt(vec3 pos)
@@ -215,7 +215,7 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
 	outGNormal = vec4(normalize(camNormalMap + gnormal.xyz), mul);
     
     outLight = rgba;
-    if (renderPass == 4) outLight -= color.a;
+    outLight -= color.a;
 
     if (!skipTint) outTint = vec4(getColorMapping(terrainTex).rgb, mul);
 }
