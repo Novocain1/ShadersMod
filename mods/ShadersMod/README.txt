@@ -1,0 +1,1 @@
+Place preset.ini in your games main folder if you have Reshade OpenGL x64 installed.
