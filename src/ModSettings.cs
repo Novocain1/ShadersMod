@@ -28,6 +28,12 @@ namespace Shaders
             set => ClientSettings.Inst.Bool["volumetricshading_SSDO"] = value;
         }
 
+        public static bool SSRDiffraction
+        {
+            get => ClientSettings.Inst.GetBoolSetting("volumetricshading_SSRDiffraction");
+            set => ClientSettings.Inst.Bool["volumetricshading_SSRDiffraction"] = value;
+        }
+
         public static int SSRWaterTransparency
         {
             get => ClientSettings.Inst.GetIntSetting("volumetricshading_SSRWaterTransparency");

@@ -15,7 +15,14 @@ namespace Shaders
                 Text = "Enable Screen Space Reflections",
                 ToggleAction = ToggleSSR
             });
-            
+
+            RegisterOption(new ConfigOption
+            {
+                SwitchKey = "toggleDiffraction",
+                Text = "Enable Diffraction",
+                ToggleAction = ToggleDiffraction
+            });
+
             RegisterOption(new ConfigOption
             {
                 SliderKey = "dimmingSlider",
@@ -60,6 +67,7 @@ namespace Shaders
         protected override void RefreshValues()
         {
             SingleComposer.GetSwitch("toggleSSR").SetValue(ModSettings.ScreenSpaceReflectionsEnabled);
+            SingleComposer.GetSwitch("toggleDiffraction").SetValue(ModSettings.SSRDiffraction);
             SingleComposer.GetSlider("dimmingSlider").SetValues(ModSettings.SSRReflectionDimming, 1, 400, 1);
             SingleComposer.GetSlider("transparencySlider").SetValues(ModSettings.SSRWaterTransparency, 0, 100, 1);
             SingleComposer.GetSlider("tintSlider").SetValues(ModSettings.SSRTintInfluence, 0, 100, 1);
@@ -71,6 +79,15 @@ namespace Shaders
         private void ToggleSSR(bool on)
         {
             ModSettings.ScreenSpaceReflectionsEnabled = on;
+
+            capi.GetClientPlatformAbstract().RebuildFrameBuffers();
+            capi.Shader.ReloadShaders();
+            RefreshValues();
+        }
+
+        private void ToggleDiffraction(bool on)
+        {
+            ModSettings.SSRDiffraction = on;
 
             capi.GetClientPlatformAbstract().RebuildFrameBuffers();
             capi.Shader.ReloadShaders();

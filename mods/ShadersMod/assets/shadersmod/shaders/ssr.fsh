@@ -6,6 +6,9 @@ uniform sampler2D water1;
 uniform sampler2D water2;
 uniform sampler2D water3;
 uniform sampler2D imperfect;
+
+uniform sampler2DArray texArrTest;
+
 uniform vec3 playerpos;
 uniform float windWaveCounter;
 uniform float waterWaveCounter;
@@ -37,12 +40,14 @@ layout(location = 0) out vec4 outGPosition;
 layout(location = 1) out vec4 outGNormal;
 layout(location = 2) out vec4 outTint;
 layout(location = 3) out vec4 outLight;
+layout(location = 4) out vec4 outDiffraction;
 
 #include colormap.fsh
 #include commonnoise.fsh
 
 void CommonPrePass(inout float mul)
 {
+    outDiffraction.xy = vec2(0);
     mul = shiny ? 0.0 : mul;
 }
 
@@ -174,13 +179,16 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     float foam = water.a;
 
     vec3 nmNoise = water.rgb / div; //noise1 + noise2 + noise3;
+    nmNoise.z -= 0.1;
     mul = foam;
     
-    normalMap = isLava ? vec3(0) : abs(nmNoise * 2.0);
+    normalMap = isLava ? vec3(0) : nmNoise * 2.0;
     
     outTint = vec4(getColorMapping(terrainTex).rgb, mul);
     outTint.rgb += nmNoise.y * div + foam * div;
     //outTint *= vec4(rgba.rgb, 1.0);
+
+    outDiffraction.xy = normalMap.xy * 0.1;
 
     if (shinyOrSkyExposed > 0 && dropletIntensity > 0.0) GenSplash(normalMap);
 }
@@ -216,7 +224,10 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
     
     outLight = rgba;
     outLight -= color.a;
-
+    
+    outDiffraction.xy = outDiffraction.x + outDiffraction.y > 0 ? outDiffraction.xy : normalMap.xy * (1.0 - color.a) * 0.1;
+    outDiffraction.z = 1.0 - color.a;
+    
     if (!skipTint) outTint = vec4(getColorMapping(terrainTex).rgb, mul);
 }
 

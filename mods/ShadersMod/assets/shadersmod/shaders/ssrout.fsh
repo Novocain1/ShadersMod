@@ -7,6 +7,7 @@ uniform sampler2D gNormal;
 uniform sampler2D gTint;
 uniform sampler2D gDepth;
 uniform sampler2D gLight;
+uniform sampler2D gDiffraction;
 
 uniform mat4 projectionMatrix;
 uniform mat4 invProjectionMatrix;
@@ -21,6 +22,7 @@ uniform vec4 rgbaFog;
 
 in vec2 texcoord;
 out vec4 outColor;
+out vec4 outDiffraction;
 
 #include dither.fsh
 #include fogandlight.fsh
@@ -155,5 +157,8 @@ void main(void) {
         
         outColor.a *= (1.0f - positionFrom.w) * fresnel;
     }
+    float depth1 = texture(gDepth, texcoord).x;
+    outDiffraction = texture(gDiffraction, texcoord);
+    outDiffraction.xz *= 1.0 - depth1;
     //outColor.rgb = light.rgb + light.a;
 }

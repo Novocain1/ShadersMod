@@ -65,6 +65,8 @@ namespace Shaders
             var injector = mod.ShaderInjector;
             injector.RegisterBoolProperty("VSMOD_SSR", () => ModSettings.ScreenSpaceReflectionsEnabled);
 
+            injector.RegisterBoolProperty("VSMOD_SSR_DIFFRACTION", () => ModSettings.SSRDiffraction);
+
             injector.RegisterFloatProperty("VSMOD_SSR_WATER_TRANSPARENCY",
                 () => (100 - ModSettings.SSRWaterTransparency) * 0.01f);
 
@@ -138,20 +140,20 @@ namespace Shaders
             {
                 FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight, 
                 DepthTextureId = GL.GenTexture(),
-                ColorTextureIds = ArrayUtil.CreateFilled(4, _ => GL.GenTexture())
+                ColorTextureIds = ArrayUtil.CreateFilled(5, _ => GL.GenTexture())
             };
             
             // bind and setup textures
-            ssrFramebuffer.SetupTextures(new[] { 0, 1 }, new[] { 2, 3 });
+            ssrFramebuffer.SetupTextures(new[] { 0, 1, 4 }, new[] { 2, 3 });
 
             // setup output framebuffer
             ssrOutFramebuffer = new FrameBufferRef
             {
                 FboId = GL.GenFramebuffer(), Width = fbWidth, Height = fbHeight,
-                ColorTextureIds = new[] { GL.GenTexture() }
+                ColorTextureIds = ArrayUtil.CreateFilled(2, _ => GL.GenTexture())
             };
             
-            ssrOutFramebuffer.SetupTextures(new int[0], new int[] { 0 }, false);
+            ssrOutFramebuffer.SetupTextures(new int[0], new int[] { 0, 1 }, false);
 
             screenQuad = platform.GetScreenQuad();
         }
@@ -203,6 +205,7 @@ namespace Shaders
             shader.BindTexture2D("gDepth", platform.FrameBuffers[(int) EnumFrameBuffer.Primary].DepthTextureId, 3);
             shader.BindTexture2D("gTint", ssrFramebuffer.ColorTextureIds[2], 4);
             shader.BindTexture2D("gLight", ssrFramebuffer.ColorTextureIds[3], 5);
+            shader.BindTexture2D("gDiffraction", ssrFramebuffer.ColorTextureIds[4], 6);
             shader.UniformMatrix("projectionMatrix", mod.capi.Render.CurrentProjectionMatrix);
             shader.UniformMatrix("invProjectionMatrix", Mat4f.Invert(invProjMatrix, mod.capi.Render.CurrentProjectionMatrix));
             shader.UniformMatrix("invModelViewMatrix", Mat4f.Invert(invModelViewMatrix, mod.capi.Render.CameraMatrixOriginf));
@@ -239,8 +242,9 @@ namespace Shaders
             platform.LoadFrameBuffer(ssrFramebuffer);
             GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 1f});
             GL.ClearBuffer(ClearBuffer.Color, 1, new []{0f, 0f, 0f, 1f});
-            GL.ClearBuffer(ClearBuffer.Color, 2, new []{0f, 0f, 0f, 1f });
-            GL.ClearBuffer(ClearBuffer.Color, 3, new []{0f, 0f, 0f, 1f });
+            GL.ClearBuffer(ClearBuffer.Color, 2, new []{0f, 0f, 0f, 1f});
+            GL.ClearBuffer(ClearBuffer.Color, 3, new []{0f, 0f, 0f, 1f});
+            GL.ClearBuffer(ClearBuffer.Color, 4, new []{0f, 0f, 0f, 1f});
 
             platform.GlEnableCullFace();
             platform.GlDepthMask(false);
@@ -250,6 +254,7 @@ namespace Shaders
             GL.BlendFunc(1, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
             GL.BlendFunc(2, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
             GL.BlendFunc(3, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
+            GL.BlendFunc(4, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
 
             // render stuff
             game.GlPushMatrix();
@@ -303,6 +308,7 @@ namespace Shaders
             if (ssrOutFramebuffer == null) return;
             
             final.BindTexture2D("ssrScene", ssrOutFramebuffer.ColorTextureIds[0]);
+            final.BindTexture2D("diffraction", ssrOutFramebuffer.ColorTextureIds[1]);
         }
 
         public void Dispose()

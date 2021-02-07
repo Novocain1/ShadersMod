@@ -5,6 +5,7 @@ uniform sampler2D glowParts;  // The second color buffer (outGlow var)
 uniform sampler2D bloomParts; // The blurred find bright texture
 uniform sampler2D godrayParts;
 uniform sampler2D ssaoScene;
+uniform sampler2D diffraction;
 
 #if VSMOD_SSR > 0
 uniform sampler2D ssrScene;
@@ -102,11 +103,21 @@ vec4 ColorGrade(vec4 color) {
 
 void main(void)
 {
+	vec4 difTex = texture(diffraction, texCoord);
+	vec2 difCoord = texCoord + difTex.xy;
+	vec4 difTexC = texture(diffraction, difCoord);
+
+#if VSMOD_SSR > 0 && VSMOD_SSR_DIFFRACTION > 0
+	difCoord = difTexC.z > 0 ? difCoord : texCoord;
+#else
+	difCoord = texCoord;
+#endif	
+
 	// FXAA precompiler constant is set by game engine
 	#if FXAA == 1
-		vec4 color = fxaaTexturePixel(primaryScene, texCoord, invFrameSize);
+		vec4 color = fxaaTexturePixel(primaryScene, difCoord, invFrameSize);
 	#else
-		vec4 color = texture(primaryScene, texCoord);
+		vec4 color = texture(primaryScene, difCoord);
 	#endif	
     
 #if VSMOD_SSR > 0
@@ -117,8 +128,8 @@ void main(void)
 	color.a=1;
 	float bloomSub = 0;
 	#if BLOOM == 1
-		vec4 bloomCol = texture(bloomParts, texCoord);
-		float glowLevel = texture(glowParts, texCoord).r;
+		vec4 bloomCol = texture(bloomParts, difCoord);
+		float glowLevel = texture(glowParts, difCoord).r;
 		
 		//vec3 blendedBloomCol = (bloomCol.rgb + color.rgb * (1-bloomCol.a));
 		//color.rgb = (color.rgb + blendedBloomCol) / 2;
@@ -131,14 +142,14 @@ void main(void)
 	#endif 
 
 	#if SSAOLEVEL > 0
-		color.rgb *= min(1, texture(ssaoScene, texCoord).r + bloomSub);
-		//if (texCoord.x < 0.5) {
-		//	color.rgb = texture(ssaoScene, texCoord).rgb;
+		color.rgb *= min(1, texture(ssaoScene, difCoord).r + bloomSub);
+		//if (difCoord.x < 0.5) {
+		//	color.rgb = texture(ssaoScene, difCoord).rgb;
 		//}
 	#endif
 	
 	#if GODRAYS > 0
-		vec4 grc = texture(godrayParts, texCoord);
+		vec4 grc = texture(godrayParts, difCoord);
 		color.rgb += grc.rgb;
 		color.rgb = min(color.rgb, vec3(1));
 		color.a=1;

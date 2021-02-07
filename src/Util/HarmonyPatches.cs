@@ -169,6 +169,28 @@ namespace Shaders
         }
     }
 
+    [HarmonyPatch(typeof(ShaderProgram))]
+    internal class FixSampler2DArray
+    {
+        const string uniformTypesRegex = @"(\s|\r\n)uniform\s*(?<type>float|int|ivec2|ivec3|ivec4|vec2|vec3|vec4|sampler2DArray|sampler2DShadow|sampler2D|samplerCube|mat3|mat4)\s*(\[[\d\w]+\])?\s*(?<var>[\d\w]+)";
+
+        [HarmonyPatch("collectUniformNames")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> CollectUniformNames(IEnumerable<CodeInstruction> instructions)
+        {
+            bool found = false;
+            foreach (var val in instructions)
+            {
+                if (!found && val.opcode == OpCodes.Ldstr)
+                {
+                    found = true;
+                    yield return new CodeInstruction(OpCodes.Ldstr, uniformTypesRegex);
+                }
+                else yield return val;
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(SystemRenderShadowMap))]
     internal class SystemRenderShadowMapPatches
     {
