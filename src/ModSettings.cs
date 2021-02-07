@@ -10,6 +10,12 @@ namespace Shaders
             set => ClientSettings.Inst.Bool["volumetricshading_screenSpaceReflections"] = value;
         }
 
+        public static bool SSRBlurredNormal
+        {
+            get => ClientSettings.Inst.GetBoolSetting("volumetricshading_SSRBlurredNormal");
+            set => ClientSettings.Inst.Bool["volumetricshading_SSRBlurredNormal"] = value;
+        }
+
         public static int VolumetricLightingFlatness
         {
             get => ClientSettings.Inst.GetIntSetting("volumetricshading_volumetricLightingFlatness");

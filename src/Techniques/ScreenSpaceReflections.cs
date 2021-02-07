@@ -67,6 +67,8 @@ namespace Shaders
 
             injector.RegisterBoolProperty("VSMOD_SSR_DIFFRACTION", () => ModSettings.SSRDiffraction);
 
+            injector.RegisterBoolProperty("VSMOD_SSR_BLURREDNM", () => ModSettings.SSRBlurredNormal);
+
             injector.RegisterFloatProperty("VSMOD_SSR_WATER_TRANSPARENCY",
                 () => (100 - ModSettings.SSRWaterTransparency) * 0.01f);
 
@@ -194,6 +196,8 @@ namespace Shaders
             var dayLight = 1.25f * GameMath.Max(mod.capi.World.Calendar.DayLightStrength - mod.capi.World.Calendar.MoonLightStrength / 2f, 0.05f);
 
             var shader = ssrOutShader;
+            var blurShader = mod.capi.Render.GetEngineShader(EnumShaderProgram.Bilateralblur) as ShaderProgramBilateralblur;
+
             shader.Use();
             GL.Enable(EnableCap.Blend);
 
@@ -221,6 +225,10 @@ namespace Shaders
             GL.Disable(EnableCap.Blend);
             platform.RenderFullscreenTriangle(screenQuad);
             shader.Stop();
+
+            fbWidth = (int)(platform.window.Width * ClientSettings.SSAA);
+            fbHeight = (int)(platform.window.Height * ClientSettings.SSAA);
+
             GL.Enable(EnableCap.Blend);
             platform.UnloadFrameBuffer(ssrOutFramebuffer);
             
