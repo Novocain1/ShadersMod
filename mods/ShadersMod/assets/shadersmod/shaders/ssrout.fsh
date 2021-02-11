@@ -23,6 +23,7 @@ uniform vec4 rgbaFog;
 in vec2 texcoord;
 out vec4 outColor;
 out vec4 outDiffraction;
+out vec4 outParallaxPos;
 
 #include dither.fsh
 #include fogandlight.fsh
@@ -159,6 +160,7 @@ void main(void) {
     }
     float depth1 = texture(gDepth, texcoord).x;
     outDiffraction = texture(gDiffraction, texcoord);
+    
     outDiffraction.xz *= 1.0 - depth1;
     //outColor.rgb = light.rgb + light.a;
 }

@@ -54,6 +54,14 @@ namespace Shaders
             mod.Events.RebuildFramebuffers += SetupFramebuffers;
             SetupFramebuffers(platform.FrameBuffers);
 
+            /*test = mod.capi.Render.LoadTextureArray(new AssetLocation[]
+            {
+                new AssetLocation("shadersmod:textures/environment/water/1.png"),
+                new AssetLocation("shadersmod:textures/environment/water/2.png"),
+                new AssetLocation("shadersmod:textures/environment/water/3.png")
+            }, 64, 64);
+            */
+
             waterTextures[0] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/1.png"));
             waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/2.png"));
             waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/3.png"));
@@ -196,7 +204,6 @@ namespace Shaders
             var dayLight = 1.25f * GameMath.Max(mod.capi.World.Calendar.DayLightStrength - mod.capi.World.Calendar.MoonLightStrength / 2f, 0.05f);
 
             var shader = ssrOutShader;
-            var blurShader = mod.capi.Render.GetEngineShader(EnumShaderProgram.Bilateralblur) as ShaderProgramBilateralblur;
 
             shader.Use();
             GL.Enable(EnableCap.Blend);
@@ -235,6 +242,16 @@ namespace Shaders
             platform.CheckGlError("Error while calculating SSR");
         }
         
+        public static void ClearBuffers(int num)
+        {
+            for (int i = 0; i < num; i++) GL.ClearBuffer(ClearBuffer.Color, i, new[] { 0f, 0f, 0f, 1f });
+        }
+
+        public static void BlendBuffers(int num)
+        {
+            for (int i = 0; i < num; i++) GL.BlendFunc(i, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
+        }
+
         private void OnRenderssr()
         {
             if (ssrFramebuffer == null) return;
@@ -248,21 +265,13 @@ namespace Shaders
 
             // bind our framebuffer
             platform.LoadFrameBuffer(ssrFramebuffer);
-            GL.ClearBuffer(ClearBuffer.Color, 0, new []{0f, 0f, 0f, 1f});
-            GL.ClearBuffer(ClearBuffer.Color, 1, new []{0f, 0f, 0f, 1f});
-            GL.ClearBuffer(ClearBuffer.Color, 2, new []{0f, 0f, 0f, 1f});
-            GL.ClearBuffer(ClearBuffer.Color, 3, new []{0f, 0f, 0f, 1f});
-            GL.ClearBuffer(ClearBuffer.Color, 4, new []{0f, 0f, 0f, 1f});
+            ClearBuffers(7);
 
             platform.GlEnableCullFace();
             platform.GlDepthMask(false);
             platform.GlEnableDepthTest();
             GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(0, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
-            GL.BlendFunc(1, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
-            GL.BlendFunc(2, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
-            GL.BlendFunc(3, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
-            GL.BlendFunc(4, BlendingFactorSrc.OneMinusSrcAlpha, BlendingFactorDest.SrcAlpha);
+            BlendBuffers(7);
 
             // render stuff
             game.GlPushMatrix();

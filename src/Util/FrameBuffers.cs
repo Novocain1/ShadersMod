@@ -54,7 +54,7 @@ namespace Shaders
                 bmps[i] = Platform.BitmapCreateFromPng(assetData, assetData.Length);
             }
 
-            int id = Platform.LoadTextureArray(bmps, width, height, true);
+            int id = Platform.LoadTextureArray(bmps, width, height);
 
             for (int i = 0; i < bmps.Length; i++)
             {
@@ -73,6 +73,8 @@ namespace Shaders
 
             int id = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2DArray, id);
+            
+            GL.TexStorage3D(TextureTarget3d.Texture2DArray, 0, SizedInternalFormat.Rgba16, width, height, bmps.Length);
 
             if (platform.ENABLE_ANISOTROPICFILTERING)
             {
@@ -102,12 +104,11 @@ namespace Shaders
 
                     bitmap.UnlockBits(bmp_data);
                 }
-
-                GL.TexImage2D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, pointers);
+                GL.TexSubImage3D(TextureTarget.Texture2DArray, 0, 0, 0, 0, width, height, bmps.Length, PixelFormat.Bgra, PixelType.UnsignedByte, pointers);
             }
             else
             {
-                byte[,] texels = new byte[bmps.Length, width * height * 4];
+                byte[,] texels2d = new byte[bmps.Length, width * height * 4];
 
                 for (int i = 0; i < bmps.Length; i++)
                 {
@@ -117,14 +118,26 @@ namespace Shaders
                     {
                         byte[] bytes = ColorUtil.ToRGBABytes(bmp.Pixels[j]);
 
-                        texels[i, j * 4 + 0] = bytes[0];
-                        texels[i, j * 4 + 1] = bytes[1];
-                        texels[i, j * 4 + 2] = bytes[2];
-                        texels[i, j * 4 + 3] = bytes[3];
+                        texels2d[i, j * 4 + 0] = bytes[0];
+                        texels2d[i, j * 4 + 1] = bytes[1];
+                        texels2d[i, j * 4 + 2] = bytes[2];
+                        texels2d[i, j * 4 + 3] = bytes[3];
                     }
                 }
 
-                GL.TexImage2D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, texels);
+                byte[] texels = new byte[bmps.Length * width * height * 4];
+                
+                int index = 0;
+
+                for (int x = 0; x < texels2d.GetUpperBound(0); x++)
+                {
+                    for (int y = 0; y < texels2d.GetUpperBound(1); y++)
+                    {
+                        texels[index++] = texels2d[x, y];
+                    }
+                }
+
+                GL.TexSubImage3D(TextureTarget.Texture2DArray, 0, 0, 0, 0, width, height, bmps.Length, PixelFormat.Bgra, PixelType.UnsignedByte, texels);
             }
 
 
@@ -141,14 +154,13 @@ namespace Shaders
                 {
                     GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.NearestMipmapLinear);
                 }
-
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, linearMag ? (int)TextureMagFilter.Linear : (int)TextureMagFilter.Nearest);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureLodBias, 0f);
                 GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMaxLevel, ClientSettings.MipMapLevel);
 
                 // Causes seams between blocks :/
                 //GL.TexParameter(TextureTarget.Texture2D, (TextureParameterName)ExtTextureFilterAnisotropic.TextureMaxAnisotropyExt, 4);
-
+                
                 GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
             }
             else

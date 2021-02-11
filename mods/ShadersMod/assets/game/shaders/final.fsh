@@ -106,12 +106,12 @@ void main(void)
 	vec4 difTex = texture(diffraction, texCoord);
 	vec2 difCoord = texCoord + difTex.xy;
 	vec4 difTexC = texture(diffraction, difCoord);
-
+	
 #if VSMOD_SSR > 0 && VSMOD_SSR_DIFFRACTION > 0
 	difCoord = difTexC.z > 0 ? difCoord : texCoord;
 #else
 	difCoord = texCoord;
-#endif	
+#endif
 
 	// FXAA precompiler constant is set by game engine
 	#if FXAA == 1
@@ -203,6 +203,6 @@ void main(void)
 	outColor.a=1;
 
 	//outColor.rgb = ssr.rgb;
-	
+
 	//outColor.rg=texCoord.xy;
 }

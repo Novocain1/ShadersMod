@@ -202,8 +202,7 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
 {
     mat3 tbn = transpose(CotangentFrame(worldNormal, worldPos.xyz, uv));
     mat3 invTbn = transpose(tbn);
-    vec3 viewTangent = normalize(invTbn * worldPos.xyz);
-
+    
     if (shiny)
     {
         vec4 imp = texture(imperfect, uv * size / 512);
