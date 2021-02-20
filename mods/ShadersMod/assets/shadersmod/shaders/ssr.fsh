@@ -188,7 +188,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     outTint.rgb += nmNoise.y * div + foam * div;
     //outTint *= vec4(rgba.rgb, 1.0);
 
-    outDiffraction.xy = normalMap.xy * 0.1;
+    outDiffraction.xy = normalMap.xy * 0.2;
 
     if (shinyOrSkyExposed > 0 && dropletIntensity > 0.0) GenSplash(normalMap);
 }

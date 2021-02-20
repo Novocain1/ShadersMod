@@ -163,7 +163,7 @@ namespace Shaders
                 ColorTextureIds = ArrayUtil.CreateFilled(2, _ => GL.GenTexture())
             };
             
-            ssrOutFramebuffer.SetupTextures(new int[0], new int[] { 0, 1 }, false);
+            ssrOutFramebuffer.SetupTextures(new int[] { 1 }, new int[] { 0 }, false);
 
             screenQuad = platform.GetScreenQuad();
         }
