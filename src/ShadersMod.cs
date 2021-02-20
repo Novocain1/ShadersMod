@@ -4,6 +4,28 @@ using HarmonyLib;
 
 namespace Shaders
 {
+    public class Parallax : IRenderer
+    {
+        ShadersMod mod;
+
+        public Parallax(ShadersMod mod)
+        {
+            this.mod = mod;
+        }
+
+        public double RenderOrder => 1;
+
+        public int RenderRange => int.MaxValue;
+
+        public void Dispose()
+        {
+        }
+
+        public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
+        {
+        }
+    }
+
     public class ShadersMod : ModSystem
     {
         public static ShadersMod Instance { get; private set; }
@@ -17,6 +39,7 @@ namespace Shaders
         public OverexposureEffect OverexposureEffect { get; private set; }
         public ScreenSpaceDirectionalOcclusion ScreenSpaceDirectionalOcclusion { get; private set; }
         public ShadowTweaks ShadowTweaks { get; private set; }
+        public Parallax Parallax { get; private set; }
 
         public ConfigGui ConfigGui;
         public GuiDialog CurrentDialog;

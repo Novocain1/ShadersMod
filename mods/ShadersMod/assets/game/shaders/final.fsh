@@ -202,7 +202,8 @@ void main(void)
 	outColor.rgb = mix(outColor.rgb, vec3(0), grayvignette);
 	outColor.a=1;
 
-	//outColor.rgb = ssr.rgb;
+	//outColor.rgb = texture(ssrScene, texCoord).rgb;
+	//outColor.a = 1.0;
 
 	//outColor.rg=texCoord.xy;
 }

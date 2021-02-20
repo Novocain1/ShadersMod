@@ -48,7 +48,7 @@ namespace Shaders
 
             mod.capi.Settings.AddWatcher<bool>("volumetricshading_screenSpaceReflections", OnEnabledChanged);
 
-            mod.capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssr");
+            mod.capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssrWorld");
             mod.capi.Event.RegisterRenderer(this, EnumRenderStage.AfterPostProcessing, "ssrOut");
 
             mod.Events.RebuildFramebuffers += SetupFramebuffers;
@@ -110,7 +110,7 @@ namespace Shaders
 
                 shader = (ShaderProgram)mod.capi.Shader.NewShaderProgram();
                 shader.AssetDomain = mod.Mod.Info.ModID;
-                mod.capi.Shader.RegisterFileShaderProgram("ssr", shader);
+                mod.capi.Shader.RegisterFileShaderProgram("ssrworld", shader);
                 success &= shader.Compile();
 
                 ssrShaderByRenderPass[i] = shader;

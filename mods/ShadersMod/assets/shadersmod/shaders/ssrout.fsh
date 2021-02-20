@@ -161,5 +161,7 @@ void main(void) {
     outDiffraction = texture(gDiffraction, texcoord);
     
     outDiffraction.xz *= (1.1 - depth1);
-    //outColor.rgb = light.rgb + light.a;
+    
+    //outColor.rgb = light.rgb;
+    //outColor.a = 1.0;
 }

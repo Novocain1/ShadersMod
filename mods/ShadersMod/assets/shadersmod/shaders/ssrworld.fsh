@@ -222,7 +222,7 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
 	outGNormal = vec4(normalize(camNormalMap + gnormal.xyz), mul);
     
     outLight = rgba;
-    outLight -= color.a;
+    //outLight -= color.a;
     
     outDiffraction.xy = outDiffraction.x + outDiffraction.y > 0 ? outDiffraction.xy : normalMap.xy * (1.0 - color.a) * 0.1;
     outDiffraction.z = 1.0 - color.a;
