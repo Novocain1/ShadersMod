@@ -94,6 +94,7 @@ vec4 WaterNormal(vec2 vec)
     float cnt2 = sin(cnt + 4) * 0.5 + 0.5;
     
     vec4 intp = mix3(sample1, sample2, sample3, cnt0, cnt1, cnt2);
+    intp.xyz = (intp.xyz - 0.5) * 2.0;
 
     return intp;
 }
@@ -175,11 +176,13 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
 
     div = skyExposed ? div / clamp(windIntensity, 0.1, 1.0) : div;
 
-    vec4 water = WaterNormal(uv * size / 64);
+    vec2 mapping = worldNormal.y != 0 ? -fragWorldPos.xz / 2 : worldNormal.x != 0 ? -fragWorldPos.zy / 2 : -fragWorldPos.xy / 2;
+
+    vec4 water = WaterNormal(mapping);
     float foam = water.a;
 
     vec3 nmNoise = water.rgb / div; //noise1 + noise2 + noise3;
-    nmNoise.z -= 0.1;
+    //nmNoise.z -= 0.1 * clamp(windIntensity, 0, 1);
     mul = foam;
     
     normalMap = isLava ? vec3(0) : nmNoise * 2.0;
