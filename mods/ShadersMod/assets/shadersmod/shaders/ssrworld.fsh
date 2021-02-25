@@ -175,16 +175,17 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     bool isLava = (waterFlags & (1<<25)) > 0;
     float div = ((waterFlags & (1<<27)) > 0) ? 90 : 20;
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
-    float clampedWind = clamp(windIntensity, 0.1, 1.0);
-
-    div *= 1.0 - clampedWind;
+    float clampedWind = clamp(windIntensity, 0.25, 1.0);
 
     vec2 mapping = worldNormal.y != 0 ? -fragWorldPos.xz / 2 : worldNormal.x != 0 ? -fragWorldPos.zy / 2 : -fragWorldPos.xy / 2;
 
     vec4 water = WaterNormal(mapping);
+    water.rgb /= div;
+    water.rgb *= clampedWind;
+    
     float foam = water.a;
 
-    vec3 nmNoise = water.rgb / div;
+    vec3 nmNoise = clamp(water.rgb, -1.0, 1.0);
 
     mul = foam;
     
