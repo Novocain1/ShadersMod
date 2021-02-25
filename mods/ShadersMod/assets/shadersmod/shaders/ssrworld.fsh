@@ -69,22 +69,25 @@ vec3 NormalFromNoise(vec3 pos)
     return (normalize(cross(vertCenter - vertNorth, vertCenter - vertEast)) * 0.5 + 0.5) * 0.1;
 }
 
+vec4 NormalMap(sampler2D tex, vec2 uv)
+{
+    vec4 samp = texture(tex, uv);
+    samp.xyz = (samp.xyz - 0.5) * 2.0;
+    return samp;
+}
+
 vec4 WaterNormal(vec2 vec)
 {
     vec2 flowVec = normalize(flowVectorf);
 
     if (length(flowVectorf) > 0.001) {
         vec += (flowVec * waterWaveCounter);
-	} 
-    else if (skyExposed)
-    {
-        vec.x += windWaveCounter / 16.0;
 	}
-    else vec.x += waterWaveCounter / 32.0;
+    vec.x += windWaveCounter / 16.0;
 
-    vec4 sample1 = texture(water1, vec);
-    vec4 sample2 = texture(water2, vec);
-    vec4 sample3 = texture(water3, vec);
+    vec4 sample1 = NormalMap(water1, vec);
+    vec4 sample2 = NormalMap(water2, vec);
+    vec4 sample3 = NormalMap(water3, vec);
 
     float cnt = sin(waterWaveCounter * 4) * 0.5 + 0.5;
     float third = 1.0 / 3.0;
@@ -94,8 +97,7 @@ vec4 WaterNormal(vec2 vec)
     float cnt2 = sin(cnt + 4) * 0.5 + 0.5;
     
     vec4 intp = mix3(sample1, sample2, sample3, cnt0, cnt1, cnt2);
-    intp.xyz = (intp.xyz - 0.5) * 2.0;
-
+    
     return intp;
 }
 
@@ -173,23 +175,23 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     bool isLava = (waterFlags & (1<<25)) > 0;
     float div = ((waterFlags & (1<<27)) > 0) ? 90 : 20;
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
+    float clampedWind = clamp(windIntensity, 0.1, 1.0);
 
-    div = skyExposed ? div / clamp(windIntensity, 0.1, 1.0) : div;
+    div *= 1.0 - clampedWind;
 
     vec2 mapping = worldNormal.y != 0 ? -fragWorldPos.xz / 2 : worldNormal.x != 0 ? -fragWorldPos.zy / 2 : -fragWorldPos.xy / 2;
 
     vec4 water = WaterNormal(mapping);
     float foam = water.a;
 
-    vec3 nmNoise = water.rgb / div; //noise1 + noise2 + noise3;
-    //nmNoise.z -= 0.1 * clamp(windIntensity, 0, 1);
+    vec3 nmNoise = water.rgb / div;
+
     mul = foam;
     
-    normalMap = isLava ? vec3(0) : nmNoise * 2.0;
+    normalMap = isLava ? vec3(0) : nmNoise;
     
     outTint = vec4(getColorMapping(terrainTex).rgb, mul);
-    outTint.rgb += nmNoise.y * div + foam * div;
-    //outTint *= vec4(rgba.rgb, 1.0);
+    outTint.rgb += (nmNoise.y * 0.5 + 0.5) + foam;
 
     outDiffraction.xy = normalMap.xy * 0.2;
 
