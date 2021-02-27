@@ -6,6 +6,7 @@ uniform sampler2D water1;
 uniform sampler2D water2;
 uniform sampler2D water3;
 uniform sampler2D imperfect;
+uniform sampler2D caustics;
 
 uniform sampler2DArray texArrTest;
 
@@ -35,6 +36,8 @@ bool shiny = renderPass != 4 && shinyOrSkyExposed > 0;
 bool skyExposed = renderPass == 4 && shinyOrSkyExposed > 0;
 
 vec3 coord1 = worldPos.xyz + playerpos;
+
+vec2 mapping = worldNormal.y != 0 ? -fragWorldPos.xz / 2 : worldNormal.x != 0 ? -fragWorldPos.zy / 2 : -fragWorldPos.xy / 2;
 
 layout(location = 0) out vec4 outGPosition;
 layout(location = 1) out vec4 outGNormal;
@@ -165,6 +168,14 @@ void GenSeepedPuddles(inout vec3 normalMap, inout float mul)
     }
 }
 
+void ApplyCaustics(inout vec3 normalMap, inout float mul)
+{   
+    vec2 uvA = mapping;
+    uvA.x += waterWaveCounter * 0.1;
+    float caustic = texture(caustics, uvA / 2).r;
+    outDiffraction.w = caustic;
+}
+
 void OpaquePass(inout vec3 normalMap, inout float mul)
 {
     GenSeepedPuddles(normalMap, mul);
@@ -177,7 +188,7 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
     float clampedWind = clamp(windIntensity, 0.25, 1.0);
 
-    vec2 mapping = worldNormal.y != 0 ? -fragWorldPos.xz / 2 : worldNormal.x != 0 ? -fragWorldPos.zy / 2 : -fragWorldPos.xy / 2;
+    
 
     vec4 water = WaterNormal(mapping);
     water.rgb /= div;
@@ -234,6 +245,13 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
     outDiffraction.z = 1.0 - color.a;
     
     if (!skipTint) outTint = vec4(getColorMapping(terrainTex).rgb, mul);
+    
+    bool isLava = (waterFlags & (1<<25)) > 0;
+    
+    if (waterFlags == 0){
+        ApplyCaustics(normalMap, mul);
+    }
+    
 }
 
 void main() 

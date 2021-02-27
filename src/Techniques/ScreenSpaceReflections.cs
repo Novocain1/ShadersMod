@@ -32,7 +32,7 @@ namespace Shaders
         private float targetWindSpeed;
         private float curWindSpeed;
 
-        int[] waterTextures = new int[4];
+        int[] waterTextures = new int[5];
         
         public ScreenSpaceReflections(ShadersMod mod)
         {
@@ -66,6 +66,7 @@ namespace Shaders
             waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/2.png"));
             waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/3.png"));
             waterTextures[3] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/imperfect.png"));
+            waterTextures[4] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/caustics.png"));
         }
 
         private void RegisterInjectorProperties()
@@ -298,6 +299,7 @@ namespace Shaders
                     shader.BindTexture2D("water2", waterTextures[1], 2);
                     shader.BindTexture2D("water3", waterTextures[2], 3);
                     shader.BindTexture2D("imperfect", waterTextures[3], 4);
+                    shader.BindTexture2D("caustics", waterTextures[4], 5);
                     shader.Uniform("rgbaAmbientIn", game.GetField<AmbientManager>("AmbientManager").BlendedAmbientColor);
 
                     shader.Uniform("renderPass", j);

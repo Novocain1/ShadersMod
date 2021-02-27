@@ -206,4 +206,9 @@ void main(void)
 	//outColor.a = 1.0;
 
 	//outColor.rg=texCoord.xy;
+	
+	//caustics
+	//outColor.rgb += outColor.rgb * difTex.w;
+
+	//outColor.rgb = vec3(difTex.w);
 }

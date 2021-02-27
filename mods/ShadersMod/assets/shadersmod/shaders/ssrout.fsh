@@ -117,6 +117,7 @@ void main(void) {
     vec3 unitPositionFrom = normalize(positionFrom.xyz);
     vec3 normal = normalize(texture(gNormal, texcoord).xyz);
     vec3 pivot = normalize(reflect(unitPositionFrom, normal));
+    float depth1 = texture(gDepth, texcoord).x;
 
     outColor = vec4(0);
 
@@ -157,11 +158,10 @@ void main(void) {
         
         outColor.a *= (1.0f - positionFrom.w) * fresnel;
     }
-    float depth1 = texture(gDepth, texcoord).x;
+
     outDiffraction = texture(gDiffraction, texcoord);
-    
     outDiffraction.xz *= (1.1 - depth1);
-    
+
     //outColor.rgb = light.rgb;
     //outColor.a = 1.0;
 }
