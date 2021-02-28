@@ -88,18 +88,28 @@ vec4 WaterNormal(vec2 vec)
 	}
     vec.x += windWaveCounter / 16.0;
 
-    vec4 sample1 = NormalMap(water1, vec);
-    vec4 sample2 = NormalMap(water2, vec);
-    vec4 sample3 = NormalMap(water3, vec);
+    vec4 s1 = NormalMap(water1, vec);
+    vec4 s2 = NormalMap(water2, vec);
+    vec4 s3 = NormalMap(water3, vec);
 
-    float cnt = sin(waterWaveCounter * 4) * 0.5 + 0.5;
-    float third = 1.0 / 3.0;
+    vec4[] anim = vec4[](
+        mix3(s1, s2, s3, 1.00, 0.00, 0.00),
+        mix3(s1, s2, s3, 0.75, 0.25, 0.00),
+        mix3(s1, s2, s3, 0.50, 0.50, 0.00),
+        mix3(s1, s2, s3, 0.25, 0.75, 0.00),
+        mix3(s1, s2, s3, 0.00, 1.00, 0.00),
+        mix3(s1, s2, s3, 0.00, 0.75, 0.25),
+        mix3(s1, s2, s3, 0.00, 0.50, 0.50),
+        mix3(s1, s2, s3, 0.00, 0.25, 0.75),
+        mix3(s1, s2, s3, 0.00, 0.00, 1.00),
+        mix3(s1, s2, s3, 0.25, 0.00, 0.75),
+        mix3(s1, s2, s3, 0.50, 0.00, 0.50),
+        mix3(s1, s2, s3, 0.75, 0.00, 0.25)
+    );
 
-    float cnt0 = sin(cnt + 0) * 0.5 + 0.5;
-    float cnt1 = sin(cnt + 2) * 0.5 + 0.5;
-    float cnt2 = sin(cnt + 4) * 0.5 + 0.5;
+    int cnt = int(mod(windWaveCounter, anim.length()));
     
-    vec4 intp = mix3(sample1, sample2, sample3, cnt0, cnt1, cnt2);
+    vec4 intp = anim[cnt];
     
     return intp;
 }
@@ -187,8 +197,6 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
     float div = ((waterFlags & (1<<27)) > 0) ? 90 : 20;
     float wind = ((waterFlags & 0x2000000) == 0) ? 1 : 0;
     float clampedWind = clamp(windIntensity, 0.25, 1.0);
-
-    
 
     vec4 water = WaterNormal(mapping);
     water.rgb /= div;
