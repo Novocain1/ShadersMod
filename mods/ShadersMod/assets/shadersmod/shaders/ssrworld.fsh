@@ -58,20 +58,6 @@ vec4 mix3(vec4 v1, vec4 v2, vec4 v3, float w1, float w2, float w3){
     return v1 * w1 + v2 * w2 + v3 * w3;
 }
 
-vec3 NormalFromNoise(vec3 pos)
-{
-    vec3 offset = vec3(1.0 / textureSize(terrainTex, 0).x, 1.0 / textureSize(terrainTex, 0).y, 0.1);
-    vec3 posCenter = pos.xyz;
-    vec3 posNorth = posCenter - offset.zyx;
-    vec3 posEast = posCenter + offset.xzy;
-
-    vec3 vertCenter = vec3(posCenter - 0.5) * gnoise(posCenter);
-    vec3 vertNorth = vec3(posNorth - 0.5) * gnoise(posNorth);
-    vec3 vertEast = vec3(posEast - 0.5) * gnoise(posEast);
-
-    return (normalize(cross(vertCenter - vertNorth, vertCenter - vertEast)) * 0.5 + 0.5) * 0.1;
-}
-
 vec4 NormalMap(sampler2D tex, vec2 uv)
 {
     vec4 samp = texture(tex, uv);
@@ -157,27 +143,6 @@ void GenSplash(inout vec3 normalMap)
     normalMap += vec3(xDelta * 0.5, zDelta * 0.5, 0);
 }
 
-void GenSeepedPuddles(inout vec3 normalMap, inout float mul)
-{
-    if (applyPuddles > 0 && dropletIntensity > 0.0)
-    {
-        vec3 coord2 = coord1 * 8 + 16;
-
-        vec3 noisepos1 = vec3(coord1.xy, coord1.z + waterWaveCounter * 0.1);
-        vec3 noisepos2 = vec3(coord2.xy, coord2.z + waterWaveCounter * 0.02);
-
-        vec3 noise1 = NormalFromNoise(noisepos1);
-        vec3 noise2 = NormalFromNoise(noisepos2);
-
-        vec3 noise = max((noise1), 0);
-
-        normalMap = (noise1) / 4.0;
-        mul = 0.0;
-        
-        GenSplash(normalMap);
-    }
-}
-
 void ApplyCaustics(inout vec3 normalMap, inout float mul)
 {   
     vec2 uvA = mapping;
@@ -188,7 +153,7 @@ void ApplyCaustics(inout vec3 normalMap, inout float mul)
 
 void OpaquePass(inout vec3 normalMap, inout float mul)
 {
-    GenSeepedPuddles(normalMap, mul);
+
 }
 
 void LiquidPass(inout vec3 normalMap, inout float mul)
@@ -220,7 +185,6 @@ void LiquidPass(inout vec3 normalMap, inout float mul)
 
 void TopsoilPass(inout vec3 normalMap, inout float mul)
 {
-    GenSeepedPuddles(normalMap, mul);
 }
 
 void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
@@ -230,7 +194,7 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
     
     if (shiny)
     {
-        vec4 imp = texture(imperfect, uv * size / 512);
+        vec4 imp = NormalMap(imperfect, uv * size / 512);
 
         normalMap = imp.xyz / 8;
     }
