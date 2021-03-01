@@ -79,32 +79,11 @@ vec4 WaterNormal(vec2 vec)
     vec4 s3 = NormalMap(water3, vec);
     
     //https://www.wolframalpha.com/input/?i=max%280%2C+abs%28%28x+modulo+3%29+-+1.5%29+-+0.5%29
-    float counter = windWaveCounter / 4.0;
+    float counter = (waterWaveCounter + windWaveCounter) / 4.0;
     float cnt1 = max(0, abs(mod(counter + 0, 3) - 1.5) - 0.5);
     float cnt2 = max(0, abs(mod(counter + 1, 3) - 1.5) - 0.5);
     float cnt3 = max(0, abs(mod(counter + 2, 3) - 1.5) - 0.5);
     vec4 intp = mix3(s1, s2, s3, cnt1, cnt2, cnt3);
-
-    /*
-    vec4[] anim = vec4[](
-        mix3(s1, s2, s3, 1.00, 0.00, 0.00),
-        mix3(s1, s2, s3, 0.75, 0.25, 0.00),
-        mix3(s1, s2, s3, 0.50, 0.50, 0.00),
-        mix3(s1, s2, s3, 0.25, 0.75, 0.00),
-        mix3(s1, s2, s3, 0.00, 1.00, 0.00),
-        mix3(s1, s2, s3, 0.00, 0.75, 0.25),
-        mix3(s1, s2, s3, 0.00, 0.50, 0.50),
-        mix3(s1, s2, s3, 0.00, 0.25, 0.75),
-        mix3(s1, s2, s3, 0.00, 0.00, 1.00),
-        mix3(s1, s2, s3, 0.25, 0.00, 0.75),
-        mix3(s1, s2, s3, 0.50, 0.00, 0.50),
-        mix3(s1, s2, s3, 0.75, 0.00, 0.25)
-    );
-
-    int cnt = int(mod(windWaveCounter, anim.length()));
-    
-    vec4 intp = anim[cnt];
-    */
     
     return intp;
 }
