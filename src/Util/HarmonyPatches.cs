@@ -39,24 +39,59 @@ namespace Shaders
 
         public static Dictionary<int, bool> reflectiveById = new Dictionary<int, bool>();
 
+        static HashSet<EnumBlockMaterial> reflectiveMaterials = new HashSet<EnumBlockMaterial>();
+        static HashSet<string> reflectiveTypes = new HashSet<string>();
+
+
+        public static void RegisterReflectiveMaterial(params EnumBlockMaterial[] blockMaterials)
+        {
+            foreach (var blockMaterial in blockMaterials)
+            {
+                reflectiveMaterials.Add(blockMaterial);
+            }
+        }
+
+        public static void RegisterReflectiveByFirstCodePart(params string[] firstCodeParts)
+        {
+            foreach (var firstCodePart in firstCodeParts)
+            {
+                reflectiveTypes.Add(firstCodePart);
+            }
+        }
+
         public static bool ReflectiveTests(Block block)
         {
             bool reflective = false;
-            reflective |= block.BlockMaterial == EnumBlockMaterial.Ice;
-            reflective |= block.BlockMaterial == EnumBlockMaterial.Glass;
-            reflective |= block.BlockMaterial == EnumBlockMaterial.Metal;
-            reflective |= block.FirstCodePart() == "rockpolished";
+            foreach (var mat in reflectiveMaterials)
+            {
+                reflective |= block.BlockMaterial == mat;
+            }
+
+            foreach (var str in reflectiveTypes)
+            {
+                reflective |= block.FirstCodePart() == str;
+            }
 
             return reflective;
         }
 
         public static void Initialize(ICoreClientAPI capi)
         {
+            RegisterReflectiveMaterial(EnumBlockMaterial.Ice, EnumBlockMaterial.Glass);
+            RegisterReflectiveByFirstCodePart("rockpolished", "irondoor", "chute", "hopper", "cokeovendoor");
+
             foreach (var val in capi.World.Blocks)
             {
                 reflectiveById[val.Id] = ReflectiveTests(val);
             }
             initialized = true;
+        }
+
+        public static void Uninitialize()
+        {
+            initialized = false;
+            reflectiveMaterials.Clear();
+            reflectiveTypes.Clear();
         }
 
         public static void Tesselate(ref TCTCache vars)
