@@ -173,6 +173,7 @@ namespace Shaders
             _harmony?.UnpatchAll();
 
             Instance = null;
+            SkyVisibility.initialized = false;
         }
     }
 }

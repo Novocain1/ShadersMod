@@ -15,7 +15,7 @@ namespace Shaders
     internal class SkyVisibility
     {
         const int chunksize = 32;
-        static bool initialized = false;
+        public static bool initialized = false;
        
         #region patch redirectors
         [HarmonyPatch(typeof(CubeTesselator), "Tesselate")][HarmonyPrefix]
@@ -44,6 +44,7 @@ namespace Shaders
             bool reflective = false;
             reflective |= block.BlockMaterial == EnumBlockMaterial.Ice;
             reflective |= block.BlockMaterial == EnumBlockMaterial.Glass;
+            reflective |= block.BlockMaterial == EnumBlockMaterial.Metal;
             reflective |= block.FirstCodePart() == "rockpolished";
 
             return reflective;
