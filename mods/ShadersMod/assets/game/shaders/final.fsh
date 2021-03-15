@@ -6,6 +6,7 @@ uniform sampler2D bloomParts; // The blurred find bright texture
 uniform sampler2D godrayParts;
 uniform sampler2D ssaoScene;
 uniform sampler2D diffraction;
+uniform sampler2D caustics;
 
 #if VSMOD_SSR > 0
 uniform sampler2D ssrScene;
@@ -119,6 +120,9 @@ void main(void)
 	#else
 		vec4 color = texture(primaryScene, difCoord);
 	#endif	
+
+	vec3 caustics = texture(caustics, difCoord).rgb;
+	color.rgb += caustics;
     
 #if VSMOD_SSR > 0
 	vec4 ssr = texture(ssrScene, texCoord);
@@ -202,7 +206,8 @@ void main(void)
 	outColor.rgb = mix(outColor.rgb, vec3(0), grayvignette);
 	outColor.a=1;
 
-	//outColor.rgb = texture(ssrScene, texCoord).rgb;
+	//outColor.rgb = vec3(caustics);
+
 	//outColor.a = 1.0;
 
 	//outColor.rg=texCoord.xy;

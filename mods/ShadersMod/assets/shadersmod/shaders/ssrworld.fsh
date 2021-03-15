@@ -6,7 +6,6 @@ uniform sampler2D water1;
 uniform sampler2D water2;
 uniform sampler2D water3;
 uniform sampler2D imperfect;
-uniform sampler2D caustics;
 
 uniform sampler2DArray texArrTest;
 
@@ -17,6 +16,7 @@ uniform int renderPass;
 uniform mat4 modelViewMatrix;
 uniform float dropletIntensity = 0;
 uniform float windIntensity = 0;
+uniform float playerUnderwater;
 
 in vec2 uv;
 in vec3 worldNormal;
@@ -131,14 +131,6 @@ void GenSplash(inout vec3 normalMap)
     normalMap += vec3(xDelta * 0.5, zDelta * 0.5, 0);
 }
 
-void ApplyCaustics(inout vec3 normalMap, inout float mul)
-{   
-    vec2 uvA = mapping;
-    uvA.x += waterWaveCounter * 0.1;
-    float caustic = texture(caustics, uvA / 2).r;
-    outDiffraction.w = caustic;
-}
-
 void OpaquePass(inout vec3 normalMap, inout float mul)
 {
 
@@ -207,11 +199,6 @@ void CommonPostPass(float mul, vec3 worldPos, vec3 normalMap, bool skipTint)
     if (!skipTint) outTint = vec4(getColorMapping(terrainTex).rgb, mul);
     
     bool isLava = (waterFlags & (1<<25)) > 0;
-    
-    if (waterFlags == 0){
-        ApplyCaustics(normalMap, mul);
-    }
-    
 }
 
 void main() 

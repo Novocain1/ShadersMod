@@ -18,8 +18,11 @@ namespace Shaders
         
         private FrameBufferRef ssrFramebuffer;
         private FrameBufferRef ssrOutFramebuffer;
+        private FrameBufferRef causticsFramebuffer;
+
         private IShaderProgram[] ssrShaderByRenderPass = new IShaderProgram[Enum.GetValues(typeof(EnumChunkRenderPass)).Length];
         private IShaderProgram ssrOutShader;
+        private IShaderProgram causticsShader;
         
         private readonly ClientMain game;
         private readonly ClientPlatformWindows platform;
@@ -32,7 +35,9 @@ namespace Shaders
         private float targetWindSpeed;
         private float curWindSpeed;
 
-        int[] waterTextures = new int[5];
+        int[] waterTextures = new int[4];
+
+        int causticsTexture;
         
         public ScreenSpaceReflections(ShadersMod mod)
         {
@@ -51,8 +56,8 @@ namespace Shaders
             mod.capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssrWorld");
             mod.capi.Event.RegisterRenderer(this, EnumRenderStage.AfterPostProcessing, "ssrOut");
 
-            mod.Events.RebuildFramebuffers += SetupFramebuffers;
-            SetupFramebuffers(platform.FrameBuffers);
+            mod.Events.RebuildFramebuffers += (a) => SetupFramebuffers();
+            SetupFramebuffers();
 
             /*test = mod.capi.Render.LoadTextureArray(new AssetLocation[]
             {
@@ -66,7 +71,8 @@ namespace Shaders
             waterTextures[1] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/2.png"));
             waterTextures[2] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/water/3.png"));
             waterTextures[3] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/imperfect.png"));
-            waterTextures[4] = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/caustics.png"));
+
+            causticsTexture = mod.capi.Render.GetOrLoadTexture(new AssetLocation("shadersmod:textures/environment/caustics.png"));
         }
 
         private void RegisterInjectorProperties()
@@ -126,10 +132,19 @@ namespace Shaders
 
             ssrOutShader = shader;
 
+            causticsShader?.Dispose();
+
+            shader = (ShaderProgram)mod.capi.Shader.NewShaderProgram();
+            shader.AssetDomain = mod.Mod.Info.ModID;
+            mod.capi.Shader.RegisterFileShaderProgram("caustics", shader);
+            success &= shader.Compile();
+
+            causticsShader = shader;
+
             return success;
         }
 
-        public void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
+        public void SetupFramebuffers()
         {
             mod.Mod.Logger.Event("Recreating framebuffers");
 
@@ -165,6 +180,16 @@ namespace Shaders
             };
             
             ssrOutFramebuffer.SetupTextures(new int[] { 1 }, new int[] { 0 }, false);
+
+            causticsFramebuffer = new FrameBufferRef
+            {
+                FboId = GL.GenFramebuffer(),
+                Width = fbWidth,
+                Height = fbHeight,
+                ColorTextureIds = ArrayUtil.CreateFilled(1, _ => GL.GenTexture())
+            };
+
+            causticsFramebuffer.SetupTextures(new int[0], new int[] { 0 }, false);
 
             screenQuad = platform.GetScreenQuad();
         }
@@ -230,15 +255,53 @@ namespace Shaders
             shader.Uniform("fogMinIn", ambient.BlendedFogMin);
             shader.Uniform("rgbaFog", ambient.BlendedFogColor);
 
-            GL.Disable(EnableCap.Blend);
             platform.RenderFullscreenTriangle(screenQuad);
             shader.Stop();
 
-            fbWidth = (int)(platform.window.Width * ClientSettings.SSAA);
-            fbHeight = (int)(platform.window.Height * ClientSettings.SSAA);
+            if (causticsFramebuffer != null && causticsShader != null)
+            {
+                platform.LoadFrameBuffer(causticsFramebuffer);
 
-            GL.Enable(EnableCap.Blend);
-            platform.UnloadFrameBuffer(ssrOutFramebuffer);
+                GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0f, 0f, 0f, 0f });
+
+                shader = causticsShader;
+                shader.Use();
+
+                shader.BindTexture2D("gDepth", platform.FrameBuffers[(int)EnumFrameBuffer.Primary].DepthTextureId, 0);
+                shader.BindTexture2D("gNormal", ssrFramebuffer.ColorTextureIds[1], 1);
+                shader.BindTexture2D("caustics", causticsTexture, 2);
+                shader.BindTexture2D("gLight", ssrFramebuffer.ColorTextureIds[3], 3);
+                shader.UniformMatrix("invProjectionMatrix", invProjMatrix);
+                shader.UniformMatrix("invModelViewMatrix", invModelViewMatrix);
+                shader.Uniform("dayLight", dayLight);
+                shader.Uniform("playerPos", uniforms.PlayerPos);
+                shader.Uniform("sunPosition", uniforms.SunPosition3D);
+                shader.Uniform("waterFlowCounter", uniforms.WaterFlowCounter);
+
+                if (ShaderProgramBase.shadowmapQuality > 0)
+                {
+                    var fbShadowFar = platform.FrameBuffers[(int)EnumFrameBuffer.ShadowmapFar];
+                    shader.BindTexture2D("shadowMapFar", fbShadowFar.DepthTextureId, 4);
+                    shader.BindTexture2D("shadowMapNear", platform.FrameBuffers[(int)EnumFrameBuffer.ShadowmapNear].DepthTextureId, 5);
+                    shader.Uniform("shadowMapWidthInv", 1f / fbShadowFar.Width);
+                    shader.Uniform("shadowMapHeightInv", 1f / fbShadowFar.Height);
+
+                    shader.Uniform("shadowRangeFar", uniforms.ShadowRangeFar);
+                    shader.Uniform("shadowRangeNear", uniforms.ShadowRangeNear);
+                    shader.UniformMatrix("toShadowMapSpaceMatrixFar", uniforms.ToShadowMapSpaceMatrixFar);
+                    shader.UniformMatrix("toShadowMapSpaceMatrixNear", uniforms.ToShadowMapSpaceMatrixNear);
+                }
+
+                shader.Uniform("fogDensityIn", ambient.BlendedFogDensity);
+                shader.Uniform("fogMinIn", ambient.BlendedFogMin);
+                shader.Uniform("rgbaFog", ambient.BlendedFogColor);
+
+                platform.RenderFullscreenTriangle(screenQuad);
+                shader.Stop();
+                platform.CheckGlError("Error while calculating caustics");
+            }
+
+            platform.LoadFrameBuffer(EnumFrameBuffer.Primary);
             
             platform.CheckGlError("Error while calculating SSR");
         }
@@ -256,6 +319,10 @@ namespace Shaders
         private void OnRenderssr()
         {
             if (ssrFramebuffer == null) return;
+
+            var playerWaterDepth = game.playerProperties.EyesInWaterDepth;
+            var playerInWater = playerWaterDepth >= 0.1f;
+            var playerUnderwater = playerInWater ? 0f : 1f;
 
             // copy the depth buffer so we can work with it
             var primaryBuffer = platform.FrameBuffers[(int)EnumFrameBuffer.Primary];
@@ -295,11 +362,11 @@ namespace Shaders
                     shader.UniformMatrix("modelViewMatrix", mod.capi.Render.CurrentModelviewMatrix);
                     shader.Uniform("dropletIntensity", chunkRenderer.GetField<float>("curRainFall"));
                     shader.Uniform("windIntensity", curWindSpeed);
+                    shader.Uniform("playerUnderwater", playerUnderwater);
                     shader.BindTexture2D("water1", waterTextures[0], 1);
                     shader.BindTexture2D("water2", waterTextures[1], 2);
                     shader.BindTexture2D("water3", waterTextures[2], 3);
                     shader.BindTexture2D("imperfect", waterTextures[3], 4);
-                    shader.BindTexture2D("caustics", waterTextures[4], 5);
                     shader.Uniform("rgbaAmbientIn", game.GetField<AmbientManager>("AmbientManager").BlendedAmbientColor);
 
                     shader.Uniform("renderPass", j);
@@ -328,6 +395,7 @@ namespace Shaders
             
             final.BindTexture2D("ssrScene", ssrOutFramebuffer.ColorTextureIds[0]);
             final.BindTexture2D("diffraction", ssrOutFramebuffer.ColorTextureIds[1]);
+            final.BindTexture2D("caustics", causticsFramebuffer.ColorTextureIds[0]);
         }
 
         public void Dispose()
