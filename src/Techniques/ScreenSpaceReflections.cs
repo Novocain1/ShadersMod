@@ -14,7 +14,7 @@ namespace Shaders
     {
         private readonly ShadersMod mod;
         
-        private bool Enabled { get => ModSettings.ScreenSpaceReflectionsEnabled; set => ModSettings.ScreenSpaceReflectionsEnabled = value; }
+        private bool Enabled { get => ShadersMod.Settings.ScreenSpaceReflectionsEnabled; set => ShadersMod.Settings.ScreenSpaceReflectionsEnabled = value; }
         
         private FrameBufferRef ssrFramebuffer;
         private FrameBufferRef ssrOutFramebuffer;
@@ -78,26 +78,26 @@ namespace Shaders
         private void RegisterInjectorProperties()
         {
             var injector = mod.ShaderInjector;
-            injector.RegisterBoolProperty("VSMOD_SSR", () => ModSettings.ScreenSpaceReflectionsEnabled);
+            injector.RegisterBoolProperty("VSMOD_SSR", () => ShadersMod.Settings.ScreenSpaceReflectionsEnabled);
 
-            injector.RegisterBoolProperty("VSMOD_SSR_DIFFRACTION", () => ModSettings.SSRDiffraction);
+            injector.RegisterBoolProperty("VSMOD_SSR_DIFFRACTION", () => ShadersMod.Settings.SSRDiffraction);
 
-            injector.RegisterBoolProperty("VSMOD_SSR_BLURREDNM", () => ModSettings.SSRBlurredNormal);
+            injector.RegisterBoolProperty("VSMOD_SSR_BLURREDNM", () => ShadersMod.Settings.SSRBlurredNormal);
 
             injector.RegisterFloatProperty("VSMOD_SSR_WATER_TRANSPARENCY",
-                () => (100 - ModSettings.SSRWaterTransparency) * 0.01f);
+                () => (100 - ShadersMod.Settings.SSRWaterTransparency) * 0.01f);
 
             injector.RegisterFloatProperty("VSMOD_SSR_SPLASH_TRANSPARENCY",
-                () => (100 - ModSettings.SSRSplashTransparency) * 0.01f);
+                () => (100 - ShadersMod.Settings.SSRSplashTransparency) * 0.01f);
 
             injector.RegisterFloatProperty("VSMOD_SSR_REFLECTION_DIMMING",
-                () => ModSettings.SSRReflectionDimming * 0.01f);
+                () => ShadersMod.Settings.SSRReflectionDimming * 0.01f);
 
             injector.RegisterFloatProperty("VSMOD_SSR_TINT_INFLUENCE",
-                () => ModSettings.SSRTintInfluence * 0.01f);
+                () => ShadersMod.Settings.SSRTintInfluence * 0.01f);
 
             injector.RegisterFloatProperty("VSMOD_SSR_SKY_MIXIN",
-                () => ModSettings.SSRSkyMixin * 0.01f);
+                () => ShadersMod.Settings.SSRSkyMixin * 0.01f);
         }
 
         private void OnEnabledChanged(bool enabled)

@@ -18,6 +18,10 @@ namespace Shaders
             public Action<bool> ToggleAction;
 
             public ActionConsumable AdvancedAction;
+
+            public string ApplyText;
+
+            public ActionConsumable ApplyAction;
         }
 
         protected List<ConfigOption> ConfigOptions = new List<ConfigOption>();
@@ -49,7 +53,7 @@ namespace Shaders
             var textBounds = ElementBounds.Fixed(0, GuiStyle.TitleBarHeight + 1.0,
                 200.0, switchSize);
             
-            var advancedButtonBounds = ElementBounds.Fixed(240.0, GuiStyle.TitleBarHeight,
+            var advancedButtonBounds = ElementBounds.Fixed(255.0, GuiStyle.TitleBarHeight,
                 110.0, switchSize);
 
             var bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
@@ -62,7 +66,8 @@ namespace Shaders
 
             foreach (var option in ConfigOptions)
             {
-                composer.AddStaticText(option.Text, font, textBounds);
+                if (option.Text != null) composer.AddStaticText(option.Text, font, textBounds);
+
                 if (option.Tooltip != null)
                 {
                     composer.AddHoverText(option.Tooltip, font, 250, textBounds.FlatCopy());
@@ -76,6 +81,11 @@ namespace Shaders
                 if (option.AdvancedAction != null)
                 {
                     composer.AddSmallButton("Advanced...", option.AdvancedAction, advancedButtonBounds);
+                }
+
+                if (option.ApplyAction != null)
+                {
+                    composer.AddSmallButton(option.ApplyText, option.ApplyAction, advancedButtonBounds);
                 }
                 
                 switchBounds = switchBounds.BelowCopy(fixedDeltaY: switchPadding);
@@ -111,6 +121,24 @@ namespace Shaders
     {
         public ConfigGui(ICoreClientAPI capi) : base(capi)
         {
+            RegisterOption(new ConfigOption
+            {
+                SwitchKey = null,
+                Text = null,
+                ApplyText = "Reset To Default",
+                Tooltip = "Resets settings to default preset.",
+                ApplyAction = ToggleResetToDefault
+            });
+
+            RegisterOption(new ConfigOption
+            {
+                SwitchKey = null,
+                Text = null,
+                ApplyText = "Apply Settings",
+                Tooltip = "Applies user settings.",
+                ApplyAction = ToggleApply
+            });
+
             RegisterOption(new ConfigOption
             {
                 SwitchKey = "toggleVolumetricLighting",
@@ -163,9 +191,23 @@ namespace Shaders
             if (!IsOpened()) return;
 
             SingleComposer.GetSwitch("toggleVolumetricLighting").On = ClientSettings.GodRayQuality > 0;
-            SingleComposer.GetSwitch("toggleSSR").On = ModSettings.ScreenSpaceReflectionsEnabled;
-            SingleComposer.GetSwitch("toggleSSDO").On = ModSettings.SSDOEnabled;
-            SingleComposer.GetSwitch("toggleOverexposure").On = ModSettings.OverexposureIntensity > 0;
+            SingleComposer.GetSwitch("toggleSSR").On = ShadersMod.Settings.ScreenSpaceReflectionsEnabled;
+            SingleComposer.GetSwitch("toggleSSDO").On = ShadersMod.Settings.SSDOEnabled;
+            SingleComposer.GetSwitch("toggleOverexposure").On = ShadersMod.Settings.OverexposureIntensity > 0;
+        }
+
+        private bool ToggleApply()
+        {
+            capi.GetClientPlatformAbstract().RebuildFrameBuffers();
+            capi.Shader.ReloadShaders();
+            return true;
+        }
+
+        private bool ToggleResetToDefault()
+        {
+            ShadersMod.Settings.ResetToDefault();
+            RefreshValues();
+            return true;
         }
 
         private void ToggleVolumetricLighting(bool on)
@@ -177,17 +219,14 @@ namespace Shaders
             }
 
             ClientSettings.GodRayQuality = on ? 1 : 0;
-
-            capi.Shader.ReloadShaders();
             RefreshValues();
         }
 
         private void ToggleScreenSpaceReflections(bool on)
         {
-            ModSettings.ScreenSpaceReflectionsEnabled = on;
+            ShadersMod.Settings.ScreenSpaceReflectionsEnabled = on;
 
             capi.GetClientPlatformAbstract().RebuildFrameBuffers();
-            capi.Shader.ReloadShaders();
             RefreshValues();
         }
 
@@ -199,23 +238,20 @@ namespace Shaders
                 capi.GetClientPlatformAbstract().RebuildFrameBuffers();
             }
 
-            ModSettings.SSDOEnabled = on;
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.SSDOEnabled = on;
             RefreshValues();
         }
 
         private void ToggleOverexposure(bool on)
         {
-            if (on && ModSettings.OverexposureIntensity <= 0)
+            if (on && ShadersMod.Settings.OverexposureIntensity <= 0)
             {
-                ModSettings.OverexposureIntensity = 100;
+                ShadersMod.Settings.OverexposureIntensity = 100;
             }
-            else if (!on && ModSettings.OverexposureIntensity > 0)
+            else if (!on && ShadersMod.Settings.OverexposureIntensity > 0)
             {
-                ModSettings.OverexposureIntensity = 0;
+                ShadersMod.Settings.OverexposureIntensity = 0;
             }
-
-            capi.Shader.ReloadShaders();
             RefreshValues();
         }
 

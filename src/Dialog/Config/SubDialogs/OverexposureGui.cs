@@ -30,22 +30,22 @@ namespace Shaders
         protected override void RefreshValues()
         {
             SingleComposer.GetSlider("intensitySlider")
-                .SetValues(ModSettings.OverexposureIntensity, 0, 200, 1);
+                .SetValues(ShadersMod.Settings.OverexposureIntensity, 0, 200, 1);
             
             SingleComposer.GetSlider("sunBloomSlider")
-                .SetValues(ModSettings.SunBloomIntensity, 0, 100, 1);
+                .SetValues(ShadersMod.Settings.SunBloomIntensity, 0, 100, 1);
+            base.RefreshValues();
         }
 
         private bool OnIntensitySliderChanged(int t1)
         {
-            ModSettings.OverexposureIntensity = t1;
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.OverexposureIntensity = t1;
             return true;
         }
 
         private bool OnSunBloomChanged(int t1)
         {
-            ModSettings.SunBloomIntensity = t1;
+            ShadersMod.Settings.SunBloomIntensity = t1;
             return true;
         }
     }

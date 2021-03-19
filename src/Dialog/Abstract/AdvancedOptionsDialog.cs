@@ -19,6 +19,10 @@ namespace Shaders
             public ActionConsumable<int> SlideAction;
 
             public bool InstantSlider;
+
+            public string ApplyText;
+
+            public ActionConsumable ApplyAction;
         }
 
         protected List<ConfigOption> ConfigOptions = new List<ConfigOption>();
@@ -26,6 +30,37 @@ namespace Shaders
         
         protected AdvancedOptionsDialog(ICoreClientAPI capi) : base(capi)
         {
+            RegisterOption(new ConfigOption
+            {
+                SwitchKey = null,
+                Text = null,
+                ApplyText = "Reset To Default",
+                Tooltip = "Resets settings to default preset.",
+                ApplyAction = ToggleResetToDefault
+            });
+
+            RegisterOption(new ConfigOption
+            {
+                SwitchKey = null,
+                Text = null,
+                ApplyText = "Apply Settings",
+                Tooltip = "Applies user settings.",
+                ApplyAction = ToggleApply
+            });
+        }
+
+        private bool ToggleApply()
+        {
+            capi.GetClientPlatformAbstract().RebuildFrameBuffers();
+            capi.Shader.ReloadShaders();
+            return true;
+        }
+
+        private bool ToggleResetToDefault()
+        {
+            ShadersMod.Settings.ResetToDefault();
+            RefreshValues();
+            return true;
         }
 
         protected void RegisterOption(ConfigOption option)
@@ -47,6 +82,8 @@ namespace Shaders
 
             var switchBounds = ElementBounds.Fixed(250, GuiStyle.TitleBarHeight, switchSize, switchSize);
             var textBounds = ElementBounds.Fixed(0, GuiStyle.TitleBarHeight + 1.0, 240.0, switchSize);
+            
+            var applyButtonBounds = ElementBounds.Fixed(255.0, GuiStyle.TitleBarHeight, 110.0, switchSize);
 
             var bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
             bgBounds.BothSizing = ElementSizing.FitToChildren;
@@ -74,8 +111,14 @@ namespace Shaders
                     composer.AddSwitch(option.ToggleAction, switchBounds, option.SwitchKey, switchSize);
                 }
 
+                if (option.ApplyAction != null)
+                {
+                    composer.AddSmallButton(option.ApplyText, option.ApplyAction, applyButtonBounds);
+                }
+
                 textBounds = textBounds.BelowCopy(fixedDeltaY: switchPadding);
                 switchBounds = switchBounds.BelowCopy(fixedDeltaY: switchPadding);
+                applyButtonBounds = applyButtonBounds.BelowCopy(fixedDeltaY: switchPadding);
             }
 
             SingleComposer = composer.EndChildElements().Compose();
@@ -102,7 +145,10 @@ namespace Shaders
         protected abstract string DialogKey { get; }
         protected abstract string DialogTitle { get; }
         
-        protected abstract void RefreshValues();
+        protected virtual void RefreshValues()
+        {
+            ShadersMod.Settings.Store();
+        }
 
         protected void OnTitleBarCloseClicked()
         {

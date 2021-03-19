@@ -38,33 +38,31 @@ namespace Shaders
         protected override void RefreshValues()
         {
             SingleComposer.GetSlider("shadowBaseWidthSlider")
-                .SetValues(ModSettings.NearShadowBaseWidth, 5, 30, 1);
+                .SetValues(ShadersMod.Settings.NearShadowBaseWidth, 5, 30, 1);
             
             SingleComposer.GetSlider("nearPeterPanningSlider")
-                .SetValues(ModSettings.NearPeterPanningAdjustment, 0, 4, 1);
+                .SetValues(ShadersMod.Settings.NearPeterPanningAdjustment, 0, 4, 1);
             
             SingleComposer.GetSlider("farPeterPanningSlider")
-                .SetValues(ModSettings.FarPeterPanningAdjustment, 0, 8, 1);
+                .SetValues(ShadersMod.Settings.FarPeterPanningAdjustment, 0, 8, 1);
+            base.RefreshValues();
         }
 
         private bool OnShadowBaseWidthSliderChanged(int value)
         {
-            ModSettings.NearShadowBaseWidth = value;
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.NearShadowBaseWidth = value;
             return true;
         }
 
         private bool OnNearPeterPanningChanged(int value)
         {
-            ModSettings.NearPeterPanningAdjustment = value;
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.NearPeterPanningAdjustment = value;
             return true;
         }
         
         private bool OnFarPeterPanningChanged(int value)
         {
-            ModSettings.FarPeterPanningAdjustment = value;
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.FarPeterPanningAdjustment = value;
             return true;
         }
     }

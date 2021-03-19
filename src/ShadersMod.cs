@@ -29,6 +29,7 @@ namespace Shaders
     public class ShadersMod : ModSystem
     {
         public static ShadersMod Instance { get; private set; }
+        public static ModSettings Settings { get; private set; }
 
         public ICoreClientAPI capi { get; private set; }
         public Events Events { get; private set; }
@@ -55,8 +56,8 @@ namespace Shaders
         {
             PatchGame();
             RegisterHotkeys();
-            SetConfigDefaults();
 
+            Settings = new ModSettings(api);
             VolumetricLighting = new VolumetricLighting(this);
             ScreenSpaceReflections = new ScreenSpaceReflections(this);
             OverexposureEffect = new OverexposureEffect(this);
@@ -93,59 +94,6 @@ namespace Shaders
             foreach (var method in myOriginalMethods)
             {
                 Mod.Logger.Event("Patched " + method.FullDescription());
-            }
-        }
-
-        private static void SetConfigDefaults()
-        {
-            if (ModSettings.VolumetricLightingFlatness == 0)
-            {
-                ModSettings.VolumetricLightingFlatness = 155;
-            }
-
-            if (ModSettings.VolumetricLightingIntensity == 0)
-            {
-                ModSettings.VolumetricLightingIntensity = 45;
-            }
-
-            if (!ModSettings.SSRWaterTransparencySet)
-            {
-                ModSettings.SSRWaterTransparency = 25;
-            }
-
-            if (ModSettings.SSRReflectionDimming == 0)
-            {
-                ModSettings.SSRReflectionDimming = 170;
-            }
-
-            if (!ModSettings.SSRTintInfluenceSet)
-            {
-                ModSettings.SSRTintInfluence = 35;
-            }
-
-            if (!ModSettings.SSRSkyMixinSet)
-            {
-                ModSettings.SSRSkyMixin = 15;
-            }
-
-            if (!ModSettings.SSRSplashTransparencySet)
-            {
-                ModSettings.SSRSplashTransparency = 65;
-            }
-
-            if (ModSettings.NearShadowBaseWidth == 0)
-            {
-                ModSettings.NearShadowBaseWidth = 15;
-            }
-
-            if (!ModSettings.NearPeterPanningAdjustmentSet)
-            {
-                ModSettings.NearPeterPanningAdjustment = 2;
-            }
-
-            if (!ModSettings.FarPeterPanningAdjustmentSet)
-            {
-                ModSettings.FarPeterPanningAdjustment = 5;
             }
         }
 

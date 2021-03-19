@@ -5,7 +5,7 @@
         public ScreenSpaceDirectionalOcclusion(ShadersMod mod)
         {
             var injector = mod.ShaderInjector;
-            injector.RegisterBoolProperty("SSDO", () => ModSettings.SSDOEnabled);
+            injector.RegisterBoolProperty("SSDO", () => ShadersMod.Settings.SSDOEnabled);
         }
     }
 }

@@ -66,75 +66,60 @@ namespace Shaders
 
         protected override void RefreshValues()
         {
-            SingleComposer.GetSwitch("toggleSSR").SetValue(ModSettings.ScreenSpaceReflectionsEnabled);
-            SingleComposer.GetSwitch("toggleDiffraction").SetValue(ModSettings.SSRDiffraction);
-            SingleComposer.GetSlider("dimmingSlider").SetValues(ModSettings.SSRReflectionDimming, 1, 400, 1);
-            SingleComposer.GetSlider("transparencySlider").SetValues(ModSettings.SSRWaterTransparency, 0, 100, 1);
-            SingleComposer.GetSlider("tintSlider").SetValues(ModSettings.SSRTintInfluence, 0, 100, 1);
-            SingleComposer.GetSlider("skyMixinSlider").SetValues(ModSettings.SSRSkyMixin, 0, 100, 1);
+            SingleComposer.GetSwitch("toggleSSR").SetValue(ShadersMod.Settings.ScreenSpaceReflectionsEnabled);
+            SingleComposer.GetSwitch("toggleDiffraction").SetValue(ShadersMod.Settings.SSRDiffraction);
+            SingleComposer.GetSlider("dimmingSlider").SetValues(ShadersMod.Settings.SSRReflectionDimming, 1, 400, 1);
+            SingleComposer.GetSlider("transparencySlider").SetValues(ShadersMod.Settings.SSRWaterTransparency, 0, 100, 1);
+            SingleComposer.GetSlider("tintSlider").SetValues(ShadersMod.Settings.SSRTintInfluence, 0, 100, 1);
+            SingleComposer.GetSlider("skyMixinSlider").SetValues(ShadersMod.Settings.SSRSkyMixin, 0, 100, 1);
             SingleComposer.GetSlider("splashTransparencySlider")
-                .SetValues(ModSettings.SSRSplashTransparency, 0, 100, 1);
+                .SetValues(ShadersMod.Settings.SSRSplashTransparency, 0, 100, 1);
+            base.RefreshValues();
         }
 
         private void ToggleSSR(bool on)
         {
-            ModSettings.ScreenSpaceReflectionsEnabled = on;
-
-            capi.GetClientPlatformAbstract().RebuildFrameBuffers();
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.ScreenSpaceReflectionsEnabled = on;
             RefreshValues();
         }
 
         private void ToggleDiffraction(bool on)
         {
-            ModSettings.SSRDiffraction = on;
-
-            capi.GetClientPlatformAbstract().RebuildFrameBuffers();
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.SSRDiffraction = on;
             RefreshValues();
         }
 
         private bool OnDimmingSliderChanged(int value)
         {
-            ModSettings.SSRReflectionDimming = value;
-
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.SSRReflectionDimming = value;
             RefreshValues();
             return true;
         }
 
         private bool OnTransparencySliderChanged(int value)
         {
-            ModSettings.SSRWaterTransparency = value;
-
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.SSRWaterTransparency = value;
             RefreshValues();
             return true;
         }
 
         private bool OnSplashTransparencySliderChanged(int value)
         {
-            ModSettings.SSRSplashTransparency = value;
-
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.SSRSplashTransparency = value;
             RefreshValues();
             return true;
         }
 
         private bool OnTintSliderChanged(int value)
         {
-            ModSettings.SSRTintInfluence = value;
-
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.SSRTintInfluence = value;
             RefreshValues();
             return true;
         }
 
         private bool OnSkyMixinSliderChanged(int value)
         {
-            ModSettings.SSRSkyMixin = value;
-
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.SSRSkyMixin = value;
             RefreshValues();
             return true;
         }

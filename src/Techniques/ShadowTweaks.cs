@@ -10,13 +10,13 @@
             _mod = mod;
 
             _mod.capi.Settings.AddWatcher<int>("volumetricshading_nearShadowBaseWidth", OnNearShadowBaseWidthChanged);
-            NearShadowBaseWidth = ModSettings.NearShadowBaseWidth;
+            NearShadowBaseWidth = ShadersMod.Settings.NearShadowBaseWidth;
             
             _mod.ShaderInjector.RegisterFloatProperty("VSMOD_NEARSHADOWOFFSET",
-                () => ModSettings.NearPeterPanningAdjustment);
+                () => ShadersMod.Settings.NearPeterPanningAdjustment);
             
             _mod.ShaderInjector.RegisterFloatProperty("VSMOD_FARSHADOWOFFSET",
-                () => ModSettings.FarPeterPanningAdjustment);
+                () => ShadersMod.Settings.FarPeterPanningAdjustment);
         }
         
         private void OnNearShadowBaseWidthChanged(int newVal)

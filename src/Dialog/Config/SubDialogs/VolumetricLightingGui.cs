@@ -40,9 +40,10 @@ namespace Shaders
 
             SingleComposer.GetSwitch("toggleVolumetricLighting").On = ClientSettings.GodRayQuality > 0;
             SingleComposer.GetSlider("flatnessSlider").SetValues(
-                ModSettings.VolumetricLightingFlatness, 1, 199, 1);
+                ShadersMod.Settings.VolumetricLightingFlatness, 1, 199, 1);
             SingleComposer.GetSlider("intensitySlider").SetValues(
-                ModSettings.VolumetricLightingIntensity, 1, 100, 1);
+                ShadersMod.Settings.VolumetricLightingIntensity, 1, 100, 1);
+            base.RefreshValues();
         }
 
         private void ToggleVolumetricLighting(bool on)
@@ -53,23 +54,19 @@ namespace Shaders
                 // need shadowmapping
                 ClientSettings.ShadowMapQuality = 1;
             }
-
-            capi.Shader.ReloadShaders();
             RefreshValues();
         }
 
         private bool OnFlatnessSliderChanged(int value)
         {
-            ModSettings.VolumetricLightingFlatness = value;
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.VolumetricLightingFlatness = value;
             RefreshValues();
             return true;
         }
 
         private bool OnIntensitySliderChanged(int value)
         {
-            ModSettings.VolumetricLightingIntensity = value;
-            capi.Shader.ReloadShaders();
+            ShadersMod.Settings.VolumetricLightingIntensity = value;
             RefreshValues();
             return true;
         }

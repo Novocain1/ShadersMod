@@ -25,12 +25,12 @@ namespace Shaders
 
             injector.RegisterFloatProperty("VOLUMETRIC_FLATNESS", () =>
             {
-                var volFlatnessInt = ModSettings.VolumetricLightingFlatness;
+                var volFlatnessInt = ShadersMod.Settings.VolumetricLightingFlatness;
                 return (200 - volFlatnessInt) * 0.01f;
             });
 
             injector.RegisterFloatProperty("VOLUMETRIC_INTENSITY",
-                () => ModSettings.VolumetricLightingIntensity * 0.01f);
+                () => ShadersMod.Settings.VolumetricLightingIntensity * 0.01f);
         }
 
         private static void OnShadowMapChanged(int quality)

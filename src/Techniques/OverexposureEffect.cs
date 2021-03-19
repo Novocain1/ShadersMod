@@ -9,7 +9,7 @@ namespace Shaders
         public OverexposureEffect(ShadersMod mod)
         {
             mod.capi.Settings.AddWatcher<int>("volumetricshading_sunBloomIntensity", OnSunBloomChanged);
-            _currentBloom = ModSettings.SunBloomIntensity;
+            _currentBloom = ShadersMod.Settings.SunBloomIntensity;
 
             mod.Events.PreSunRender += OnRenderSun;
             
@@ -21,10 +21,10 @@ namespace Shaders
             var injector = mod.ShaderInjector;
 
             injector.RegisterFloatProperty("VSMOD_OVEREXPOSURE",
-                () => ModSettings.OverexposureIntensity * 0.01f);
+                () => ShadersMod.Settings.OverexposureIntensity * 0.01f);
 
             injector.RegisterBoolProperty("VSMOD_OVEREXPOSURE_ENABLED",
-                () => ModSettings.OverexposureIntensity > 0);
+                () => ShadersMod.Settings.OverexposureIntensity > 0);
         }
 
         private void OnSunBloomChanged(int bloom)
